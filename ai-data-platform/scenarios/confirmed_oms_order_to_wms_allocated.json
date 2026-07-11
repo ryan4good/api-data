@@ -1,0 +1,222 @@
+{
+  "scene": "confirmed_oms_order_to_wms_allocated",
+  "name": "已确认：销售订单生成出库单并分配库存",
+  "description": "创建 OMS 销售订单，生成 WMS 出库单，并执行到出库单分配库存完成。 该场景由代码扫描候选场景确认生成。",
+  "systems": [
+    "oms",
+    "wms",
+    "tms"
+  ],
+  "aliases": [
+    "销售订单",
+    "订单",
+    "oms order",
+    "跨系统订单"
+  ],
+  "defaultTargetStage": "INVENTORY_ALLOCATED",
+  "defaultParams": {
+    "warehouseCode": "WH_TEST",
+    "ownerCode": "OWNER_TEST",
+    "customerCode": "CUST_TEST",
+    "qty": 1,
+    "inventoryQty": 100
+  },
+  "stages": [
+    {
+      "code": "ORDER_CREATED",
+      "name": "订单已创建",
+      "stopAfterStep": "create_order"
+    },
+    {
+      "code": "OUTBOUND_CREATED",
+      "name": "出库单已创建",
+      "stopAfterStep": "create_outbound_from_order"
+    },
+    {
+      "code": "INVENTORY_ALLOCATED",
+      "name": "库存已分配",
+      "stopAfterStep": "allocate_inventory"
+    },
+    {
+      "code": "SHIPMENT_CREATED",
+      "name": "运输单已创建",
+      "stopAfterStep": "create_shipment"
+    }
+  ],
+  "steps": [
+    {
+      "code": "create_sku",
+      "name": "创建商品",
+      "system": "wms",
+      "method": "POST",
+      "path": "/api/sku/create",
+      "skipWhen": "{{params.skuCode}}",
+      "body": {
+        "skuType": "{{params.skuType|NORMAL}}"
+      },
+      "outputs": {
+        "skuCode": "$.data.skuCode"
+      }
+    },
+    {
+      "code": "add_inventory",
+      "name": "增加库存",
+      "system": "wms",
+      "method": "POST",
+      "path": "/api/inventory/add",
+      "skipWhen": "{{params.noAutoInventory}}",
+      "body": {
+        "warehouseCode": "{{params.warehouseCode}}",
+        "skuCode": "{{context.skuCode|params.skuCode}}",
+        "qty": "{{params.inventoryQty}}"
+      }
+    },
+    {
+      "code": "create_order",
+      "name": "创建销售订单",
+      "system": "oms",
+      "method": "POST",
+      "path": "/api/order/create",
+      "body": {
+        "customerCode": "{{params.customerCode}}",
+        "skuCode": "{{context.skuCode|params.skuCode}}",
+        "qty": "{{params.qty}}"
+      },
+      "outputs": {
+        "orderNo": "$.data.orderNo"
+      }
+    },
+    {
+      "code": "create_outbound_from_order",
+      "name": "生成 WMS 出库单",
+      "system": "wms",
+      "method": "POST",
+      "path": "/api/outbound/create",
+      "body": {
+        "sourceOrderNo": "{{context.orderNo}}",
+        "warehouseCode": "{{params.warehouseCode}}",
+        "ownerCode": "{{params.ownerCode}}",
+        "skuCode": "{{context.skuCode|params.skuCode}}",
+        "qty": "{{params.qty}}"
+      },
+      "outputs": {
+        "outboundNo": "$.data.outboundNo"
+      }
+    },
+    {
+      "code": "mark_wms_pushed",
+      "name": "回写 OMS 已推送仓储",
+      "system": "oms",
+      "method": "POST",
+      "path": "/api/order/mark-wms-pushed",
+      "body": {
+        "orderNo": "{{context.orderNo}}",
+        "outboundNo": "{{context.outboundNo}}"
+      }
+    },
+    {
+      "code": "audit_outbound",
+      "name": "审核出库单",
+      "system": "wms",
+      "method": "POST",
+      "path": "/api/outbound/audit",
+      "body": {
+        "outboundNo": "{{context.outboundNo}}"
+      }
+    },
+    {
+      "code": "allocate_inventory",
+      "name": "分配库存",
+      "system": "wms",
+      "method": "POST",
+      "path": "/api/outbound/allocate",
+      "body": {
+        "outboundNo": "{{context.outboundNo}}"
+      }
+    },
+    {
+      "code": "create_shipment",
+      "name": "创建运输单",
+      "system": "tms",
+      "method": "POST",
+      "path": "/api/shipment/create",
+      "body": {
+        "orderNo": "{{context.orderNo}}",
+        "outboundNo": "{{context.outboundNo}}"
+      },
+      "outputs": {
+        "shipmentNo": "$.data.shipmentNo"
+      }
+    },
+    {
+      "code": "verify_order",
+      "name": "查询销售订单状态",
+      "system": "oms",
+      "method": "GET",
+      "path": "/api/order/detail/{{context.orderNo}}"
+    },
+    {
+      "code": "verify_outbound",
+      "name": "查询出库单状态",
+      "system": "wms",
+      "method": "GET",
+      "path": "/api/outbound/detail/{{context.outboundNo}}",
+      "verify": {
+        "$.data.status": "{{verifyOutboundStatus|ALLOCATED}}"
+      }
+    }
+  ],
+  "sourceCandidate": "candidate_oms_order_to_wms_allocated",
+  "confidence": 0.76,
+  "evidence": [
+    {
+      "stepHint": "h.CreateOrder",
+      "api": "POST /api/order/create",
+      "evidence": {
+        "file": "sample-repos/mock-oms-service-go/internal/router/router.go",
+        "line": 6
+      }
+    },
+    {
+      "stepHint": "h.MarkWmsPushed",
+      "api": "POST /api/order/mark-wms-pushed",
+      "evidence": {
+        "file": "sample-repos/mock-oms-service-go/internal/router/router.go",
+        "line": 7
+      }
+    },
+    {
+      "stepHint": "h.Detail",
+      "api": "GET /api/order/detail/:orderNo",
+      "evidence": {
+        "file": "sample-repos/mock-oms-service-go/internal/router/router.go",
+        "line": 8
+      }
+    },
+    {
+      "stepHint": "h.CreateOutbound",
+      "api": "POST /api/outbound/create",
+      "evidence": {
+        "file": "sample-repos/mock-wms-service-go/internal/router/router.go",
+        "line": 8
+      }
+    },
+    {
+      "stepHint": "h.AllocateInventory",
+      "api": "POST /api/outbound/allocate",
+      "evidence": {
+        "file": "sample-repos/mock-wms-service-go/internal/router/router.go",
+        "line": 10
+      }
+    }
+  ],
+  "statuses": [
+    "oms:ORDER_CREATED",
+    "oms:WMS_PUSHED",
+    "wms:CREATED",
+    "wms:AUDITED",
+    "wms:ALLOCATED",
+    "wms:SHIPPED"
+  ],
+  "confirmedAt": "2026-07-02T15:21:27.003Z"
+}

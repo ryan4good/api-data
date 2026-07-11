@@ -1,0 +1,13 @@
+{
+  "system": "wms",
+  "env": "test",
+  "baseUrl": "http://localhost:3102",
+  "auth": {
+    "type": "none"
+  },
+  "safety": {
+    "blacklist": [
+      "POST /api/sms/send"
+    ]
+  }
+}

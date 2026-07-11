@@ -1,0 +1,11 @@
+{
+  "system": "oms",
+  "env": "test",
+  "baseUrl": "http://localhost:3101",
+  "auth": {
+    "type": "none"
+  },
+  "safety": {
+    "blacklist": []
+  }
+}

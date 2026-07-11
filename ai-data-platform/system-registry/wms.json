@@ -1,0 +1,8 @@
+{
+  "code": "wms",
+  "name": "Warehouse Management System",
+  "type": "backend",
+  "language": "go",
+  "framework": "gin",
+  "repo": "sample-repos/mock-wms-service-go"
+}

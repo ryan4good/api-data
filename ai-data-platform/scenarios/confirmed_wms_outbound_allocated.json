@@ -1,0 +1,204 @@
+{
+  "scene": "confirmed_wms_outbound_allocated",
+  "name": "已确认：出库单分配库存完成",
+  "description": "创建 WMS 出库单，并按目标阶段执行到已创建、已审核、分配库存完成或出库完成。 该场景由代码扫描候选场景确认生成。",
+  "systems": [
+    "wms"
+  ],
+  "aliases": [
+    "出库单",
+    "出库",
+    "wms outbound"
+  ],
+  "defaultTargetStage": "ALLOCATED",
+  "defaultParams": {
+    "warehouseCode": "WH_TEST",
+    "ownerCode": "OWNER_TEST",
+    "qty": 1,
+    "autoPrepareSku": true,
+    "autoPrepareInventory": true,
+    "inventoryQty": 100
+  },
+  "stages": [
+    {
+      "code": "CREATED",
+      "name": "已创建",
+      "stopAfterStep": "create_outbound"
+    },
+    {
+      "code": "AUDITED",
+      "name": "已审核",
+      "stopAfterStep": "audit_outbound"
+    },
+    {
+      "code": "ALLOCATED",
+      "name": "分配库存完成",
+      "stopAfterStep": "allocate_inventory"
+    },
+    {
+      "code": "SHIPPED",
+      "name": "出库完成",
+      "stopAfterStep": "ship_outbound"
+    }
+  ],
+  "steps": [
+    {
+      "code": "create_sku",
+      "name": "创建商品",
+      "system": "wms",
+      "method": "POST",
+      "path": "/api/sku/create",
+      "skipWhen": "{{params.skuCode}}",
+      "body": {
+        "skuType": "{{params.skuType|NORMAL}}"
+      },
+      "outputs": {
+        "skuCode": "$.data.skuCode"
+      }
+    },
+    {
+      "code": "add_inventory",
+      "name": "增加库存",
+      "system": "wms",
+      "method": "POST",
+      "path": "/api/inventory/add",
+      "skipWhen": "{{params.noAutoInventory}}",
+      "body": {
+        "warehouseCode": "{{params.warehouseCode}}",
+        "skuCode": "{{context.skuCode|params.skuCode}}",
+        "qty": "{{params.inventoryQty}}"
+      }
+    },
+    {
+      "code": "create_outbound",
+      "name": "创建出库单",
+      "system": "wms",
+      "method": "POST",
+      "path": "/api/outbound/create",
+      "body": {
+        "warehouseCode": "{{params.warehouseCode}}",
+        "ownerCode": "{{params.ownerCode}}",
+        "skuCode": "{{context.skuCode|params.skuCode}}",
+        "qty": "{{params.qty}}"
+      },
+      "outputs": {
+        "outboundNo": "$.data.outboundNo"
+      }
+    },
+    {
+      "code": "audit_outbound",
+      "name": "审核出库单",
+      "system": "wms",
+      "method": "POST",
+      "path": "/api/outbound/audit",
+      "body": {
+        "outboundNo": "{{context.outboundNo}}"
+      }
+    },
+    {
+      "code": "allocate_inventory",
+      "name": "分配库存",
+      "system": "wms",
+      "method": "POST",
+      "path": "/api/outbound/allocate",
+      "body": {
+        "outboundNo": "{{context.outboundNo}}"
+      }
+    },
+    {
+      "code": "ship_outbound",
+      "name": "出库",
+      "system": "wms",
+      "method": "POST",
+      "path": "/api/outbound/ship",
+      "body": {
+        "outboundNo": "{{context.outboundNo}}"
+      }
+    },
+    {
+      "code": "verify_outbound",
+      "name": "查询出库单状态",
+      "system": "wms",
+      "method": "GET",
+      "path": "/api/outbound/detail/{{context.outboundNo}}",
+      "verify": {
+        "$.data.status": "{{targetStage}}"
+      }
+    }
+  ],
+  "sourceCandidate": "candidate_wms_outbound_allocated",
+  "confidence": 0.82,
+  "evidence": [
+    {
+      "stepHint": "sku.CreateSku",
+      "api": "POST /api/sku/create",
+      "evidence": {
+        "file": "sample-repos/mock-wms-service-go/internal/router/router.go",
+        "line": 6
+      }
+    },
+    {
+      "stepHint": "inv.AddInventory",
+      "api": "POST /api/inventory/add",
+      "evidence": {
+        "file": "sample-repos/mock-wms-service-go/internal/router/router.go",
+        "line": 7
+      }
+    },
+    {
+      "stepHint": "h.CreateOutbound",
+      "api": "POST /api/outbound/create",
+      "evidence": {
+        "file": "sample-repos/mock-wms-service-go/internal/router/router.go",
+        "line": 8
+      }
+    },
+    {
+      "stepHint": "h.AuditOutbound",
+      "api": "POST /api/outbound/audit",
+      "evidence": {
+        "file": "sample-repos/mock-wms-service-go/internal/router/router.go",
+        "line": 9
+      }
+    },
+    {
+      "stepHint": "h.AllocateInventory",
+      "api": "POST /api/outbound/allocate",
+      "evidence": {
+        "file": "sample-repos/mock-wms-service-go/internal/router/router.go",
+        "line": 10
+      }
+    },
+    {
+      "stepHint": "h.ShipOutbound",
+      "api": "POST /api/outbound/ship",
+      "evidence": {
+        "file": "sample-repos/mock-wms-service-go/internal/router/router.go",
+        "line": 11
+      }
+    },
+    {
+      "stepHint": "h.Detail",
+      "api": "GET /api/outbound/detail/:outboundNo",
+      "evidence": {
+        "file": "sample-repos/mock-wms-service-go/internal/router/router.go",
+        "line": 12
+      }
+    },
+    {
+      "stepHint": "h.FindBySourceOrder",
+      "api": "GET /api/outbound/by-source-order/:sourceOrderNo",
+      "evidence": {
+        "file": "sample-repos/mock-wms-service-go/internal/router/router.go",
+        "line": 13
+      }
+    }
+  ],
+  "statuses": [
+    "CREATED",
+    "AUDITED",
+    "ALLOCATED",
+    "SHIPPED"
+  ],
+  "confirmedAt": "2026-07-02T15:21:03.358Z"
+}

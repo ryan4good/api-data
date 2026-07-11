@@ -1,0 +1,11 @@
+{
+  "system": "tms",
+  "env": "test",
+  "baseUrl": "http://localhost:3103",
+  "auth": {
+    "type": "none"
+  },
+  "safety": {
+    "blacklist": []
+  }
+}

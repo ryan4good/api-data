@@ -1,0 +1,15 @@
+{
+  "name": "ai-data-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start:mock": "node mock-systems/start-all.mjs",
+    "start:web": "node ai-data-platform/web/server.mjs",
+    "start:all": "node ai-data-platform/web/server.mjs --with-mock",
+    "run": "node ai-data-platform/agent/cli.mjs run",
+    "scan": "node ai-data-platform/scanner/go-scanner.mjs",
+    "demo": "node ai-data-platform/demo.mjs",
+    "test:smoke": "node ai-data-platform/test/smoke.mjs"
+  }
+}

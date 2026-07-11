@@ -1,0 +1,12 @@
+{
+  "domain": "tms",
+  "entities": {
+    "shipment": {
+      "name": "运输单",
+      "aliases": ["运输单", "运单", "shipment", "waybill"]
+    }
+  },
+  "stages": {
+    "SHIPMENT_CREATED": "运输单已创建"
+  }
+}

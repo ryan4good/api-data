@@ -1,0 +1,15 @@
+node_modules/
+.env
+.env.*
+!.env.example
+
+# Runtime and generated artifacts
+ai-data-platform/logs/*.json
+ai-data-platform/scanner/output/*.json
+*.tar.gz
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

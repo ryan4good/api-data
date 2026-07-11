@@ -1,0 +1,23 @@
+{
+  "domain": "wms",
+  "entities": {
+    "outbound_order": {
+      "name": "出库单",
+      "aliases": ["出库", "出库单", "outbound", "outbound_order", "delivery_order"]
+    },
+    "inventory": {
+      "name": "库存",
+      "aliases": ["库存", "stock", "inventory"]
+    },
+    "sku": {
+      "name": "商品",
+      "aliases": ["商品", "sku", "货品"]
+    }
+  },
+  "stages": {
+    "CREATED": "已创建",
+    "AUDITED": "已审核",
+    "ALLOCATED": "分配库存完成",
+    "SHIPPED": "出库完成"
+  }
+}

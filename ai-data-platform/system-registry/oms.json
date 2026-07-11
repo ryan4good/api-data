@@ -1,0 +1,8 @@
+{
+  "code": "oms",
+  "name": "Order Management System",
+  "type": "backend",
+  "language": "go",
+  "framework": "gin",
+  "repo": "sample-repos/mock-oms-service-go"
+}

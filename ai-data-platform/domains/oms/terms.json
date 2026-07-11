@@ -1,0 +1,13 @@
+{
+  "domain": "oms",
+  "entities": {
+    "sales_order": {
+      "name": "销售订单",
+      "aliases": ["订单", "销售订单", "order", "sales_order", "trade_order"]
+    }
+  },
+  "stages": {
+    "ORDER_CREATED": "订单已创建",
+    "WMS_PUSHED": "已推送仓储"
+  }
+}

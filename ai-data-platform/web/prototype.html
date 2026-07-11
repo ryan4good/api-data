@@ -1,0 +1,2918 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 造数平台原型</title>
+    <link rel="stylesheet" href="vendor/antd-reset.css" />
+    <script src="vendor/react.production.min.js"></script>
+    <script src="vendor/react-dom.production.min.js"></script>
+    <script src="vendor/dayjs.min.js"></script>
+    <script src="vendor/antd.min.js"></script>
+    <style>
+      :root {
+        --bg: #f4f6f9;
+        --surface: #ffffff;
+        --surface-soft: #f8fafc;
+        --line: #d8e0ea;
+        --ink: #172033;
+        --muted: #64748b;
+        --blue: #1677ff;
+        --teal: #08979c;
+        --green: #389e0d;
+        --gold: #d48806;
+        --red: #cf1322;
+        --sidebar: #172033;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family:
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          "PingFang SC",
+          "Microsoft YaHei",
+          sans-serif;
+      }
+
+      .shell {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 260px minmax(0, 1fr);
+      }
+
+      .sidebar {
+        background: var(--sidebar);
+        color: #f8fafc;
+        padding: 20px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .brand {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 4px 4px 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      .brand-mark {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        background: #1677ff;
+        display: grid;
+        place-items: center;
+        font-weight: 800;
+      }
+
+      .brand-name {
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .brand-sub {
+        color: #aab7ca;
+        font-size: 12px;
+        margin-top: 2px;
+      }
+
+      .nav-group {
+        display: grid;
+        gap: 6px;
+      }
+
+      .nav-caption {
+        color: #91a4bb;
+        font-size: 12px;
+        padding: 8px 8px 2px;
+      }
+
+      .nav-item {
+        min-height: 42px;
+        border-radius: 8px;
+        padding: 8px 10px;
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 8px;
+        align-items: center;
+        color: #cbd5e1;
+        cursor: pointer;
+      }
+
+      .nav-item.active {
+        background: rgba(22, 119, 255, 0.2);
+        color: #ffffff;
+      }
+
+      .nav-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        background: rgba(255, 255, 255, 0.08);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .nav-title {
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .nav-desc {
+        color: #9fb0c5;
+        font-size: 12px;
+        margin-top: 2px;
+      }
+
+      .main {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .topbar {
+        min-height: 68px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--line);
+        padding: 12px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .page-title {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 760;
+      }
+
+      .page-subtitle {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .page {
+        padding: 18px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .grid-4 {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .layout-3 {
+        display: grid;
+        grid-template-columns: 320px minmax(0, 1fr) 360px;
+        gap: 16px;
+      }
+
+      .panel {
+        min-width: 0;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .panel-head {
+        min-height: 56px;
+        padding: 14px 16px;
+        border-bottom: 1px solid #edf1f6;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .panel-title {
+        font-size: 15px;
+        font-weight: 760;
+      }
+
+      .panel-subtitle {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 3px;
+      }
+
+      .panel-body {
+        padding: 16px;
+        min-height: 0;
+      }
+
+      .hero {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 18px;
+        display: grid;
+        grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.8fr);
+        gap: 16px;
+        align-items: stretch;
+      }
+
+      .hero h2 {
+        margin: 0 0 8px;
+        font-size: 24px;
+        line-height: 1.25;
+        font-weight: 820;
+      }
+
+      .hero-copy {
+        color: var(--muted);
+        line-height: 1.7;
+        max-width: 760px;
+      }
+
+      .role-strip {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .role-card {
+        border: 1px solid #dfe7f1;
+        border-radius: 8px;
+        padding: 12px;
+        background: #fbfcff;
+        cursor: pointer;
+        min-height: 118px;
+      }
+
+      .role-card.active {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.09);
+        background: #f3f8ff;
+      }
+
+      .role-name {
+        font-size: 14px;
+        font-weight: 760;
+        margin-bottom: 8px;
+      }
+
+      .role-question {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .score-card {
+        border: 1px solid #dfe7f1;
+        border-radius: 8px;
+        padding: 16px;
+        background: #fbfcff;
+        display: grid;
+        gap: 12px;
+      }
+
+      .score-value {
+        font-size: 42px;
+        line-height: 1;
+        font-weight: 820;
+      }
+
+      .score-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .metric {
+        border: 1px solid #dfe7f1;
+        border-radius: 8px;
+        padding: 13px 14px;
+        background: #fbfcff;
+        min-height: 94px;
+      }
+
+      .metric-label {
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 7px;
+      }
+
+      .metric-value {
+        font-size: 24px;
+        font-weight: 820;
+        line-height: 1.1;
+      }
+
+      .metric-hint {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 7px;
+        overflow-wrap: anywhere;
+      }
+
+      .section-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .item-card {
+        border: 1px solid #e3eaf2;
+        border-radius: 8px;
+        padding: 12px;
+        background: #ffffff;
+        min-width: 0;
+      }
+
+      .item-card.clickable {
+        cursor: pointer;
+      }
+
+      .item-card.active {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.09);
+      }
+
+      .item-title {
+        font-size: 14px;
+        font-weight: 760;
+        overflow-wrap: anywhere;
+      }
+
+      .item-subtitle {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+        margin-top: 5px;
+        overflow-wrap: anywhere;
+      }
+
+      .tag-row {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-top: 9px;
+      }
+
+      .bar-row {
+        display: grid;
+        grid-template-columns: 128px minmax(0, 1fr) 54px;
+        gap: 10px;
+        align-items: center;
+        font-size: 12px;
+      }
+
+      .bar-label {
+        color: var(--muted);
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+
+      .bar-track {
+        height: 8px;
+        border-radius: 99px;
+        overflow: hidden;
+        background: #e9eef6;
+      }
+
+      .bar-fill {
+        height: 100%;
+        background: var(--blue);
+      }
+
+      .bar-value {
+        text-align: right;
+        font-weight: 760;
+      }
+
+      .matrix-row {
+        display: grid;
+        grid-template-columns: 160px repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        align-items: center;
+        border-bottom: 1px solid #edf1f6;
+        padding: 10px 0;
+      }
+
+      .matrix-row:last-child {
+        border-bottom: 0;
+      }
+
+      .matrix-head {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .matrix-cell {
+        min-width: 0;
+        font-size: 12px;
+      }
+
+      .workbench {
+        display: grid;
+        grid-template-columns: 340px minmax(0, 1fr) 360px;
+        gap: 16px;
+      }
+
+      .intent-box {
+        display: grid;
+        gap: 12px;
+      }
+
+      .param-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .step-card {
+        border: 1px solid #e3eaf2;
+        border-radius: 8px;
+        padding: 12px;
+        background: #ffffff;
+      }
+
+      .step-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+      }
+
+      .step-name {
+        font-size: 14px;
+        font-weight: 760;
+      }
+
+      .step-api {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 4px;
+        font-family: Consolas, "SFMono-Regular", monospace;
+        overflow-wrap: anywhere;
+      }
+
+      .log-row {
+        border-bottom: 1px solid #edf1f6;
+        padding: 12px 16px;
+        cursor: pointer;
+      }
+
+      .log-row:hover,
+      .log-row.active {
+        background: #f3f8ff;
+      }
+
+      .log-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 5px;
+      }
+
+      .log-title {
+        font-size: 13px;
+        font-weight: 760;
+      }
+
+      .log-desc {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .detail-block {
+        margin: 0;
+        background: #111827;
+        color: #dbeafe;
+        border-radius: 8px;
+        padding: 12px;
+        overflow: auto;
+        font-size: 12px;
+        line-height: 1.55;
+        max-height: 300px;
+      }
+
+      .arch-map {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(98px, 1fr));
+        gap: 8px;
+        align-items: stretch;
+      }
+
+      .arch-node {
+        border: 1px solid #dfe7f1;
+        border-radius: 8px;
+        padding: 12px 8px;
+        min-height: 92px;
+        background: #fbfcff;
+        display: grid;
+        align-content: center;
+        text-align: center;
+      }
+
+      .arch-arrow {
+        display: grid;
+        place-items: center;
+        color: var(--muted);
+        font-weight: 800;
+      }
+
+      .pipeline {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .pipeline-step {
+        border: 1px solid #dfe7f1;
+        border-radius: 8px;
+        padding: 12px;
+        background: #fbfcff;
+        min-height: 116px;
+      }
+
+      .pipeline-index {
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        background: #e6f4ff;
+        color: #0958d9;
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        font-weight: 800;
+        margin-bottom: 10px;
+      }
+
+      .drill-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+        gap: 16px;
+      }
+
+      .coverage-map {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .coverage-card {
+        border: 1px solid #dfe7f1;
+        border-left: 4px solid #d9d9d9;
+        border-radius: 8px;
+        padding: 12px;
+        background: #ffffff;
+        min-height: 128px;
+      }
+
+      .coverage-card.covered {
+        border-left-color: var(--green);
+        background: #f6ffed;
+      }
+
+      .coverage-card.candidate {
+        border-left-color: var(--gold);
+        background: #fffbe6;
+      }
+
+      .coverage-card.gap {
+        border-left-color: var(--red);
+        background: #fff7f6;
+      }
+
+      .state-flow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .state-chip {
+        min-height: 40px;
+        border: 1px solid #dfe7f1;
+        border-radius: 8px;
+        padding: 8px 10px;
+        background: #fbfcff;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .state-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+
+      .slot-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .slot-card {
+        border: 1px solid #e3eaf2;
+        border-radius: 8px;
+        padding: 10px;
+        background: #ffffff;
+      }
+
+      .slot-key {
+        font-family: Consolas, "SFMono-Regular", monospace;
+        font-size: 12px;
+        font-weight: 760;
+      }
+
+      .dag {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .dag-node {
+        border: 1px solid #dfe7f1;
+        border-radius: 8px;
+        padding: 12px;
+        background: #fbfcff;
+        min-height: 106px;
+        position: relative;
+      }
+
+      .dag-node::after {
+        content: "→";
+        position: absolute;
+        top: 12px;
+        right: 10px;
+        color: #94a3b8;
+        font-weight: 800;
+      }
+
+      .dag-node:last-child::after {
+        content: "";
+      }
+
+      .rule-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .rule-item {
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1fr);
+        gap: 8px;
+        align-items: start;
+        border: 1px solid #e3eaf2;
+        border-radius: 8px;
+        padding: 10px;
+        background: #ffffff;
+      }
+
+      .rule-mark {
+        width: 20px;
+        height: 20px;
+        border-radius: 7px;
+        background: #e6f4ff;
+        color: #0958d9;
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .policy-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .policy-card {
+        border: 1px solid #dfe7f1;
+        border-radius: 8px;
+        padding: 12px;
+        background: #ffffff;
+        min-height: 150px;
+      }
+
+      .config-row {
+        display: grid;
+        grid-template-columns: 150px minmax(0, 1fr) 110px;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #edf1f6;
+      }
+
+      .config-row:last-child {
+        border-bottom: 0;
+      }
+
+      .risk-card {
+        border: 1px solid #ffd8bf;
+        border-radius: 8px;
+        padding: 12px;
+        background: #fff7e6;
+      }
+
+      .template-preview {
+        border: 1px dashed #b7c6d8;
+        border-radius: 8px;
+        padding: 12px;
+        background: #fbfcff;
+        font-family: Consolas, "SFMono-Regular", monospace;
+        font-size: 12px;
+        line-height: 1.6;
+        overflow: auto;
+      }
+
+      .scan-run {
+        display: grid;
+        grid-template-columns: 118px minmax(0, 1fr) 86px;
+        gap: 10px;
+        align-items: center;
+        border: 1px solid #e3eaf2;
+        border-radius: 8px;
+        padding: 10px;
+        background: #ffffff;
+      }
+
+      .journey {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .journey-step {
+        border: 1px solid #dfe7f1;
+        border-radius: 8px;
+        padding: 12px;
+        background: #fbfcff;
+        min-height: 126px;
+      }
+
+      .journey-step.active {
+        border-color: var(--blue);
+        background: #f3f8ff;
+      }
+
+      .journey-step.done {
+        border-color: #b7eb8f;
+        background: #f6ffed;
+      }
+
+      .step-index {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: #e6f4ff;
+        color: #0958d9;
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        font-weight: 800;
+        margin-bottom: 10px;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .field-card {
+        border: 1px solid #e3eaf2;
+        border-radius: 8px;
+        padding: 10px;
+        background: #ffffff;
+      }
+
+      .artifact-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .artifact-card {
+        border: 1px solid #dfe7f1;
+        border-radius: 8px;
+        padding: 12px;
+        background: #ffffff;
+        min-height: 120px;
+      }
+
+      .e2e-lane {
+        border: 1px solid #dfe7f1;
+        border-radius: 8px;
+        padding: 12px;
+        background: #fbfcff;
+      }
+
+      .e2e-flow {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .e2e-node {
+        border: 1px solid #dfe7f1;
+        border-radius: 8px;
+        padding: 10px;
+        background: #ffffff;
+        min-height: 88px;
+      }
+
+      .correction-board {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .correction-column {
+        border: 1px solid #dfe7f1;
+        border-radius: 8px;
+        background: #fbfcff;
+        padding: 10px;
+        min-height: 260px;
+      }
+
+      .trial-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+        gap: 16px;
+      }
+
+      .trial-step {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr) 82px;
+        gap: 10px;
+        align-items: start;
+        border: 1px solid #e3eaf2;
+        border-radius: 8px;
+        padding: 10px;
+        background: #ffffff;
+      }
+
+      .scroll {
+        overflow: auto;
+      }
+
+      @media (max-width: 1320px) {
+        .layout-3,
+        .workbench {
+          grid-template-columns: 300px minmax(0, 1fr);
+        }
+
+        .layout-3 > .panel:last-child,
+        .workbench > .panel:last-child {
+          grid-column: 1 / -1;
+        }
+
+        .grid-4,
+        .role-strip,
+        .policy-grid,
+        .journey,
+        .artifact-grid,
+        .correction-board,
+        .pipeline {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .arch-map {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .arch-arrow {
+          display: none;
+        }
+      }
+
+      @media (max-width: 980px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          display: none;
+        }
+
+        .topbar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .hero,
+        .layout-3,
+        .workbench,
+        .grid-2,
+        .grid-3,
+        .grid-4,
+        .role-strip,
+        .drill-grid,
+        .coverage-map,
+        .slot-grid,
+        .dag,
+        .policy-grid,
+        .config-row,
+        .scan-run,
+        .journey,
+        .form-grid,
+        .artifact-grid,
+        .e2e-flow,
+        .correction-board,
+        .trial-grid,
+        .trial-step,
+        .pipeline {
+          grid-template-columns: 1fr;
+        }
+
+        .matrix-row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      const { useEffect, useMemo, useState } = React;
+      const {
+        Button,
+        Collapse,
+        ConfigProvider,
+        Input,
+        InputNumber,
+        Progress,
+        Select,
+        Space,
+        Tag,
+        Timeline,
+        Typography,
+        message,
+        theme
+      } = antd;
+      const h = React.createElement;
+
+      const fallbackSystems = [
+        { code: "wms", name: "仓储管理系统", type: "business", language: "Go", framework: "Gin", repo: "sample-repos/wms" },
+        { code: "oms", name: "订单管理系统", type: "business", language: "Go", framework: "Gin", repo: "sample-repos/oms" },
+        { code: "tms", name: "运输管理系统", type: "business", language: "Go", framework: "Gin", repo: "sample-repos/tms" }
+      ];
+
+      const fallbackConnectors = [
+        { system: "wms", env: "test", baseUrl: "http://127.0.0.1:4101", auth: { type: "none" }, safety: { blacklist: [] } },
+        { system: "oms", env: "test", baseUrl: "http://127.0.0.1:4102", auth: { type: "none" }, safety: { blacklist: [] } },
+        { system: "tms", env: "test", baseUrl: "http://127.0.0.1:4103", auth: { type: "none" }, safety: { blacklist: [] } }
+      ];
+
+      const fallbackScenarios = [
+        {
+          id: "wms_outbound_allocated",
+          name: "出库单造数",
+          systems: ["WMS"],
+          defaultStage: "ALLOCATED",
+          description: "创建 WMS 出库单，并执行到创建、审核、分配库存或出库完成。",
+          stages: [
+            { value: "CREATED", label: "已创建" },
+            { value: "AUDITED", label: "已审核" },
+            { value: "ALLOCATED", label: "分配库存完成" },
+            { value: "SHIPPED", label: "出库完成" }
+          ],
+          steps: [
+            ["create_sku", "创建商品", "WMS", "POST /api/sku/create"],
+            ["add_inventory", "增加库存", "WMS", "POST /api/inventory/add"],
+            ["create_outbound", "创建出库单", "WMS", "POST /api/outbound/create"],
+            ["audit_outbound", "审核出库单", "WMS", "POST /api/outbound/audit"],
+            ["allocate_inventory", "分配库存", "WMS", "POST /api/outbound/allocate"],
+            ["verify_outbound", "查询出库单状态", "WMS", "GET /api/outbound/detail/{{outboundNo}}"]
+          ]
+        },
+        {
+          id: "oms_order_to_wms_allocated",
+          name: "销售订单生成出库单",
+          systems: ["OMS", "WMS", "TMS"],
+          defaultStage: "INVENTORY_ALLOCATED",
+          description: "创建 OMS 销售订单，生成 WMS 出库单，并可继续创建 TMS 运输单。",
+          stages: [
+            { value: "ORDER_CREATED", label: "订单已创建" },
+            { value: "OUTBOUND_CREATED", label: "出库单已创建" },
+            { value: "INVENTORY_ALLOCATED", label: "库存已分配" },
+            { value: "SHIPMENT_CREATED", label: "运输单已创建" }
+          ],
+          steps: [
+            ["create_sku", "创建商品", "WMS", "POST /api/sku/create"],
+            ["add_inventory", "增加库存", "WMS", "POST /api/inventory/add"],
+            ["create_order", "创建销售订单", "OMS", "POST /api/order/create"],
+            ["create_outbound_from_order", "生成 WMS 出库单", "WMS", "POST /api/outbound/create"],
+            ["mark_wms_pushed", "回写 OMS 推送状态", "OMS", "POST /api/order/mark-wms-pushed"],
+            ["audit_outbound", "审核出库单", "WMS", "POST /api/outbound/audit"],
+            ["allocate_inventory", "分配库存", "WMS", "POST /api/outbound/allocate"],
+            ["create_shipment", "创建运输单", "TMS", "POST /api/shipment/create"],
+            ["verify_order", "查询销售订单状态", "OMS", "GET /api/order/detail/{{orderNo}}"],
+            ["verify_outbound", "查询出库单状态", "WMS", "GET /api/outbound/detail/{{outboundNo}}"]
+          ]
+        }
+      ];
+
+      const fallbackCandidates = [
+        {
+          scene: "candidate_wms_outbound_allocated",
+          name: "候选：WMS 出库单流转",
+          systems: ["wms"],
+          confidence: 0.86,
+          evidence: [
+            { api: "POST /api/outbound/create", stepHint: "创建出库单", evidence: { file: "outbound.go", line: 42 } },
+            { api: "POST /api/outbound/allocate", stepHint: "分配库存", evidence: { file: "outbound.go", line: 91 } }
+          ]
+        },
+        {
+          scene: "candidate_oms_order_to_wms_allocated",
+          name: "候选：销售订单到出库单",
+          systems: ["oms", "wms", "tms"],
+          confidence: 0.82,
+          evidence: [
+            { api: "POST /api/order/create", stepHint: "创建销售订单", evidence: { file: "order.go", line: 38 } },
+            { api: "POST /api/outbound/create", stepHint: "生成出库单", evidence: { file: "outbound.go", line: 42 } }
+          ]
+        }
+      ];
+
+      const baseTime = Date.now();
+      const fallbackLogs = [
+        {
+          id: "run-001",
+          scene: "wms_outbound_allocated",
+          title: "出库单造数",
+          status: "success",
+          stage: "ALLOCATED",
+          time: "14:39:35",
+          finishedAt: new Date(baseTime - 20 * 60 * 1000).toISOString(),
+          result: { outboundNo: "OUT_AUTO_0001", skuCode: "SKU_AUTO_0001", status: "ALLOCATED" },
+          steps: ["创建商品", "增加库存", "创建出库单", "审核出库单", "分配库存", "查询出库单状态"]
+        },
+        {
+          id: "run-002",
+          scene: "oms_order_to_wms_allocated",
+          title: "销售订单生成出库单",
+          status: "success",
+          stage: "INVENTORY_ALLOCATED",
+          time: "14:35:12",
+          finishedAt: new Date(baseTime - 70 * 60 * 1000).toISOString(),
+          result: { orderNo: "SO_AUTO_0001", outboundNo: "OUT_AUTO_0002", status: "ALLOCATED" },
+          steps: ["创建商品", "增加库存", "创建销售订单", "生成 WMS 出库单", "回写 OMS", "审核出库单", "分配库存"]
+        },
+        {
+          id: "run-003",
+          scene: "wms_outbound_allocated",
+          title: "库存不足出库单",
+          status: "failed",
+          stage: "ALLOCATED",
+          time: "13:58:29",
+          finishedAt: new Date(baseTime - 130 * 60 * 1000).toISOString(),
+          result: { outboundNo: "OUT_AUTO_0008", error: "inventory not enough" },
+          steps: ["创建商品", "跳过增加库存", "创建出库单", "审核出库单", "分配库存失败"]
+        }
+      ];
+
+      const defaultParams = {
+        warehouseCode: "WH_TEST",
+        ownerCode: "OWNER_TEST",
+        customerCode: "CUST_TEST",
+        qty: 1
+      };
+
+      function apiBase() {
+        return location.pathname.startsWith("/ai-data") ? "/ai-data" : "";
+      }
+
+      async function api(path, options) {
+        const response = await fetch(`${apiBase()}${path}`, {
+          headers: { "content-type": "application/json" },
+          ...options
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          const error = new Error(data.error || "request failed");
+          error.data = data;
+          throw error;
+        }
+        return data;
+      }
+
+      function normalizeScenario(item) {
+        const fallback = fallbackScenarios.find((scenario) => scenario.id === item.scene);
+        const apiSteps = (item.steps || []).map((step) => [
+          step.code,
+          step.name,
+          String(step.system || "").toUpperCase(),
+          `${step.method || ""} ${step.path || ""}`.trim()
+        ]);
+        return {
+          id: item.scene,
+          name: item.name,
+          systems: (item.systems || []).map((system) => String(system).toUpperCase()),
+          defaultStage: item.defaultTargetStage,
+          description: item.description,
+          stages: (item.stages || []).map((stage) => ({ value: stage.code, label: stage.name })),
+          steps: apiSteps.length ? apiSteps : fallback?.steps || [],
+          sourceCandidate: item.sourceCandidate,
+          confirmedAt: item.confirmedAt
+        };
+      }
+
+      function parseDate(value) {
+        const timestamp = value ? new Date(value).getTime() : NaN;
+        return Number.isFinite(timestamp) ? timestamp : 0;
+      }
+
+      function startOfDay(timestamp) {
+        const date = new Date(timestamp);
+        date.setHours(0, 0, 0, 0);
+        return date.getTime();
+      }
+
+      function startOfMonth(timestamp) {
+        const date = new Date(timestamp);
+        date.setDate(1);
+        date.setHours(0, 0, 0, 0);
+        return date.getTime();
+      }
+
+      function summarizeRuns(rows) {
+        const latest = rows.reduce((max, row) => Math.max(max, parseDate(row.finishedAt)), 0) || Date.now();
+        const todayStart = startOfDay(latest);
+        const weekStart = todayStart - 6 * 24 * 60 * 60 * 1000;
+        const monthStart = startOfMonth(latest);
+        const success = rows.filter((row) => row.status === "success").length;
+        const failed = rows.length - success;
+        const inRange = (start) => rows.filter((row) => parseDate(row.finishedAt) >= start).length;
+        return {
+          total: rows.length,
+          success,
+          failed,
+          successRate: rows.length ? Math.round((success / rows.length) * 100) : 0,
+          today: inRange(todayStart),
+          week: inRange(weekStart),
+          month: inRange(monthStart)
+        };
+      }
+
+      function compactParams(params) {
+        const compacted = {};
+        for (const [key, value] of Object.entries(params)) {
+          if (value === "" || value === undefined || value === null) continue;
+          compacted[key] = key === "qty" || key === "inventoryQty" ? Number(value) : value;
+        }
+        return compacted;
+      }
+
+      function inferScenario(text, scenarioList) {
+        return /销售订单|订单|OMS/i.test(text)
+          ? scenarioList.find((item) => item.id.includes("oms_order")) || scenarioList[1] || scenarioList[0]
+          : scenarioList.find((item) => item.id.includes("wms_outbound")) || scenarioList[0];
+      }
+
+      function inferStage(text, scenario) {
+        if (/运输单|运单|TMS/i.test(text)) return "SHIPMENT_CREATED";
+        if (/出库完成|已出库|发货/i.test(text)) return scenario.id.includes("wms_outbound") ? "SHIPPED" : "SHIPMENT_CREATED";
+        if (/分配库存|库存.*分配|库存不足/i.test(text)) {
+          return scenario.id.includes("wms_outbound") ? "ALLOCATED" : "INVENTORY_ALLOCATED";
+        }
+        if (/审核|未分配/i.test(text)) return scenario.id.includes("wms_outbound") ? "AUDITED" : "OUTBOUND_CREATED";
+        return scenario.id.includes("wms_outbound") ? "CREATED" : "ORDER_CREATED";
+      }
+
+      function visibleSteps(scenario, stage) {
+        if (!scenario?.steps?.length) return [];
+        const stopMap = {
+          CREATED: "create_outbound",
+          AUDITED: "audit_outbound",
+          ALLOCATED: "allocate_inventory",
+          SHIPPED: "create_shipment",
+          ORDER_CREATED: "create_order",
+          OUTBOUND_CREATED: "create_outbound_from_order",
+          INVENTORY_ALLOCATED: "allocate_inventory",
+          SHIPMENT_CREATED: "create_shipment"
+        };
+        const stop = stopMap[stage] || scenario.steps.at(-1)[0];
+        const index = scenario.steps.findIndex((step) => step[0] === stop);
+        const picked = scenario.steps.slice(0, index >= 0 ? index + 1 : scenario.steps.length);
+        const verify = scenario.steps.filter((step) => step[0].startsWith("verify_"));
+        return [...picked, ...verify.filter((step) => !picked.some((item) => item[0] === step[0]))];
+      }
+
+      function logFromResult(result) {
+        return {
+          id: result.file || result.finishedAt || `run-${Date.now()}`,
+          scene: result.scene,
+          title: result.sceneName,
+          status: result.success ? "success" : "failed",
+          stage: result.targetStage,
+          time: result.finishedAt ? result.finishedAt.slice(11, 19) : "",
+          finishedAt: result.finishedAt,
+          result: { ...result.context, error: result.error },
+          raw: result,
+          steps: (result.logs || []).map((step) => `${step.status === "FAILED" ? "失败" : step.status === "SKIPPED" ? "跳过" : "成功"} · ${step.name}`)
+        };
+      }
+
+      function systemCodesForScene(scenarioList, sceneId) {
+        const scenario = scenarioList.find((item) => item.id === sceneId);
+        return (scenario?.systems || []).map((system) => String(system).toLowerCase());
+      }
+
+      function percent(value, total) {
+        return total ? Math.round((value / total) * 100) : 0;
+      }
+
+      function statusColor(status) {
+        if (status === "success") return "success";
+        if (status === "failed") return "error";
+        return "default";
+      }
+
+      function systemTagColor(system) {
+        const code = String(system).toUpperCase();
+        if (code === "OMS") return "purple";
+        if (code === "WMS") return "blue";
+        if (code === "TMS") return "orange";
+        return "default";
+      }
+
+      const p0CaseCatalog = {
+        wms: [
+          {
+            id: "wms-outbound-allocate",
+            area: "出库",
+            name: "出库单创建到库存分配",
+            priority: "P0",
+            hints: ["outbound_allocated", "出库单"],
+            candidateHints: ["outbound"],
+            value: "覆盖最常用的出库前置数据"
+          },
+          {
+            id: "wms-inventory-not-enough",
+            area: "库存",
+            name: "库存不足分配失败",
+            priority: "P0",
+            hints: ["库存不足", "inventory not enough"],
+            candidateHints: ["allocate"],
+            value: "验证异常链路和失败提示"
+          },
+          {
+            id: "wms-outbound-shipped",
+            area: "出库",
+            name: "出库完成并生成流水",
+            priority: "P1",
+            hints: ["SHIPPED", "出库完成"],
+            candidateHints: ["shipment"],
+            value: "支持发货后链路联调"
+          },
+          {
+            id: "wms-stock-adjust",
+            area: "库存",
+            name: "库存调整和库存冻结",
+            priority: "P1",
+            hints: ["adjust", "freeze", "库存调整"],
+            candidateHints: ["inventory"],
+            value: "补齐库存运营类场景"
+          }
+        ],
+        oms: [
+          {
+            id: "oms-order-create",
+            area: "订单",
+            name: "销售订单创建",
+            priority: "P0",
+            hints: ["order_to_wms", "销售订单"],
+            candidateHints: ["order"],
+            value: "承接交易入口造数"
+          },
+          {
+            id: "oms-push-wms",
+            area: "履约",
+            name: "销售订单推送 WMS",
+            priority: "P0",
+            hints: ["wms", "生成出库单"],
+            candidateHints: ["wms"],
+            value: "打通订单到仓储链路"
+          },
+          {
+            id: "oms-cancel-order",
+            area: "订单",
+            name: "订单取消和库存释放",
+            priority: "P0",
+            hints: ["cancel", "取消"],
+            candidateHints: ["cancel"],
+            value: "覆盖逆向高频联调"
+          },
+          {
+            id: "oms-status-callback",
+            area: "履约",
+            name: "出库状态回写 OMS",
+            priority: "P1",
+            hints: ["mark_wms_pushed", "回写"],
+            candidateHints: ["callback"],
+            value: "保证跨系统状态一致"
+          }
+        ],
+        tms: [
+          {
+            id: "tms-shipment-create",
+            area: "运输",
+            name: "创建运输单",
+            priority: "P0",
+            hints: ["SHIPMENT_CREATED", "运输单"],
+            candidateHints: ["shipment"],
+            value: "承接仓储出库后的运输前置"
+          },
+          {
+            id: "tms-carrier-assign",
+            area: "承运",
+            name: "承运商分配",
+            priority: "P0",
+            hints: ["carrier", "承运商"],
+            candidateHints: ["carrier"],
+            value: "补齐运输核心操作"
+          },
+          {
+            id: "tms-track-update",
+            area: "轨迹",
+            name: "轨迹节点回传",
+            priority: "P1",
+            hints: ["track", "轨迹"],
+            candidateHints: ["track"],
+            value: "支持履约状态联调"
+          },
+          {
+            id: "tms-sign",
+            area: "签收",
+            name: "签收完成",
+            priority: "P1",
+            hints: ["sign", "签收"],
+            candidateHints: ["sign"],
+            value: "补齐运输闭环"
+          }
+        ]
+      };
+
+      function includesAny(text, hints) {
+        const source = String(text || "").toLowerCase();
+        return hints.some((hint) => source.includes(String(hint).toLowerCase()));
+      }
+
+      function p0CasesForSystem(code, scenes, candidates) {
+        return (p0CaseCatalog[code] || []).map((item) => {
+          const coveredScene = scenes.find((scene) =>
+            includesAny(`${scene.id} ${scene.name} ${scene.description} ${(scene.stages || []).map((stage) => stage.value).join(" ")}`, item.hints)
+          );
+          const candidate = candidates.find((row) =>
+            includesAny(`${row.scene} ${row.name} ${(row.evidence || []).map((evidence) => `${evidence.api} ${evidence.stepHint}`).join(" ")}`, item.candidateHints)
+          );
+          const status = coveredScene ? "covered" : candidate ? "candidate" : "gap";
+          return { ...item, status, scene: coveredScene, candidate };
+        });
+      }
+
+      function scenarioEvidence(scene, candidates, planSteps) {
+        const sceneKey = String(scene?.id || "").replace(/^confirmed_/, "").replace(/^candidate_/, "");
+        const matchedCandidate = candidates.find((candidate) =>
+          String(candidate.scene || "").includes(sceneKey) ||
+          includesAny(`${candidate.name} ${candidate.scene}`, [scene?.name || "", sceneKey])
+        );
+        const evidence = (matchedCandidate?.evidence || []).map((item) => ({
+          title: item.api,
+          detail: `${item.stepHint || "扫描证据"} · ${item.evidence?.file || "unknown"}:${item.evidence?.line || "-"}`
+        }));
+        if (evidence.length) return evidence;
+        return (planSteps || []).slice(0, 6).map((step) => ({
+          title: step[3],
+          detail: `${step[2]} · ${step[1]}`
+        }));
+      }
+
+      function scenarioProfile(scene, candidates, planSteps, logs) {
+        const systems = (scene?.systems || []).map((system) => String(system).toUpperCase());
+        const isOms = systems.includes("OMS");
+        const isTms = systems.includes("TMS");
+        const isWms = systems.includes("WMS");
+        const slots = [
+          { key: "warehouseCode", name: "仓库编码", type: "必填", source: "环境默认值", example: "WH_TEST" },
+          { key: "ownerCode", name: "货主编码", type: "必填", source: "环境默认值", example: "OWNER_TEST" },
+          { key: "qty", name: "商品数量", type: "必填", source: "用户意图或默认值", example: "1" },
+          isOms && { key: "customerCode", name: "客户编码", type: "必填", source: "客户主数据", example: "CUST_TEST" },
+          isWms && { key: "skuCode", name: "商品编码", type: "自动生成", source: "前置步骤产物", example: "SKU_AUTO_0001" },
+          isTms && { key: "carrierCode", name: "承运商", type: "可选", source: "运输系统默认值", example: "CARRIER_TEST" }
+        ].filter(Boolean);
+        const validations = [
+          isOms && "OMS 订单号生成成功，订单状态进入目标阶段",
+          isWms && "WMS 出库单存在，库存分配状态与目标阶段一致",
+          isWms && "库存明细可查询，扣减或冻结数量正确",
+          isTms && "TMS 运输单可查询，关联出库单号一致",
+          "执行日志每一步都有 request、response 和耗时"
+        ].filter(Boolean);
+        const guards = [
+          "同一批次执行使用唯一业务单号，避免污染历史数据",
+          "接口黑名单和环境连接器在执行前校验",
+          "失败后保留上下文，支持从失败步骤重试或复盘"
+        ];
+        const history = logs.filter((log) => log.scene === scene?.id || String(log.scene || "").replace(/^confirmed_/, "") === String(scene?.id || "").replace(/^confirmed_/, ""));
+        return {
+          slots,
+          validations,
+          guards,
+          evidence: scenarioEvidence(scene, candidates, planSteps),
+          history
+        };
+      }
+
+      const governancePolicies = [
+        {
+          id: "rbac",
+          name: "权限边界",
+          owner: "平台管理员",
+          status: "enabled",
+          description: "按角色限制可执行系统、环境、场景和高风险接口",
+          rules: ["Leader 只读价值和覆盖", "Owner 管理本系统场景", "User 只能执行授权环境"]
+        },
+        {
+          id: "safety",
+          name: "接口安全",
+          owner: "测试平台",
+          status: "enabled",
+          description: "执行前检查黑名单、写接口风险和数据清理策略",
+          rules: ["生产环境默认禁止", "支付/退款/真实发货接口拦截", "每次执行生成审计记录"]
+        },
+        {
+          id: "approval",
+          name: "审批策略",
+          owner: "质量负责人",
+          status: "draft",
+          description: "高影响场景或跨系统批量造数需要审批后执行",
+          rules: ["跨 3 个以上系统触发审批", "数量大于 50 触发审批", "失败重试超过 3 次触发审批"]
+        }
+      ];
+
+      const environmentPolicies = [
+        { env: "dev", scope: "开发联调", execution: "允许", approval: "无需审批", retention: "7 天" },
+        { env: "test", scope: "集成测试", execution: "允许", approval: "高风险审批", retention: "30 天" },
+        { env: "pre", scope: "预发验证", execution: "受限", approval: "必须审批", retention: "90 天" },
+        { env: "prod", scope: "生产", execution: "禁止写入", approval: "只读审计", retention: "180 天" }
+      ];
+
+      const parameterTemplates = [
+        {
+          id: "wms-outbound-basic",
+          name: "WMS 出库基础模板",
+          systems: ["WMS"],
+          fields: ["warehouseCode", "ownerCode", "skuCode", "qty"],
+          defaults: { warehouseCode: "WH_TEST", ownerCode: "OWNER_TEST", qty: 1 }
+        },
+        {
+          id: "oms-to-wms-basic",
+          name: "OMS 到 WMS 履约模板",
+          systems: ["OMS", "WMS", "TMS"],
+          fields: ["customerCode", "warehouseCode", "ownerCode", "qty", "carrierCode"],
+          defaults: { customerCode: "CUST_TEST", warehouseCode: "WH_TEST", ownerCode: "OWNER_TEST", qty: 1 }
+        }
+      ];
+
+      const scanRuns = [
+        { id: "scan-20260704-01", system: "WMS", status: "done", nodes: 9, candidates: 1, duration: "18s", quality: 86 },
+        { id: "scan-20260704-02", system: "OMS", status: "done", nodes: 8, candidates: 1, duration: "15s", quality: 82 },
+        { id: "scan-20260704-03", system: "TMS", status: "partial", nodes: 5, candidates: 0, duration: "9s", quality: 54 }
+      ];
+
+      const riskBacklog = [
+        { title: "TMS 缺少承运商分配 P0 场景", level: "P0", owner: "TMS Owner", action: "补扫描规则或人工录入场景" },
+        { title: "库存不足失败链路需要参数模板", level: "P0", owner: "WMS Owner", action: "补异常模板和校验点" },
+        { title: "跨系统批量造数审批策略未启用", level: "P1", owner: "平台管理员", action: "启用审批策略并接入通知" }
+      ];
+
+      const onboardingJourney = [
+        { key: "register", name: "注册系统", status: "done", desc: "填写系统、代码仓、负责人和环境连接器" },
+        { key: "scan", name: "代码扫描", status: "done", desc: "识别接口、实体、状态机和跨系统调用" },
+        { key: "generate", name: "生成 E2E", status: "active", desc: "从业务链路生成候选场景和证据链" },
+        { key: "correct", name: "人工校正", status: "active", desc: "校正参数、步骤、状态和校验点" },
+        { key: "trial", name: "试运行", status: "pending", desc: "dry-run、预检、单步执行、结果报告" },
+        { key: "publish", name: "发布使用", status: "pending", desc: "进入正式场景库并开放给授权用户" }
+      ];
+
+      const newSystemDraft = {
+        code: "rma",
+        name: "售后服务系统",
+        owner: "RMA Owner",
+        repo: "git@example.com:biz/rma-service.git",
+        branch: "main",
+        language: "Go",
+        framework: "Gin",
+        frontend: "React",
+        app: "Flutter",
+        baseUrl: "http://rma-test.internal",
+        auth: "Bearer Token",
+        env: "test"
+      };
+
+      const codeAnalysisArtifacts = [
+        { name: "接口", value: 18, desc: "create / approve / receive / refund / query" },
+        { name: "实体", value: 7, desc: "RmaOrder、ReturnItem、RefundBill、WarehouseReceipt" },
+        { name: "状态机", value: 2, desc: "售后单状态、退款单状态" },
+        { name: "跨系统依赖", value: 4, desc: "OMS、WMS、FIN、消息网关" }
+      ];
+
+      const e2eGeneratedScenes = [
+        {
+          id: "rma_return_to_refund",
+          name: "退货入库后生成退款单",
+          confidence: 88,
+          systems: ["OMS", "RMA", "WMS", "FIN"],
+          target: "REFUND_CREATED",
+          flow: ["创建售后单", "审核通过", "WMS 收货", "生成退款单", "校验状态"],
+          evidence: ["POST /api/rma/create", "POST /api/rma/approve", "POST /api/return/receive", "POST /api/refund/create"]
+        },
+        {
+          id: "rma_exchange_shipment",
+          name: "换货审核后生成补发出库单",
+          confidence: 76,
+          systems: ["RMA", "WMS", "TMS"],
+          target: "EXCHANGE_SHIPPED",
+          flow: ["创建换货单", "审核换货", "生成出库单", "创建运输单", "校验物流"],
+          evidence: ["POST /api/rma/exchange/create", "POST /api/rma/approve", "POST /api/outbound/create", "POST /api/shipment/create"]
+        }
+      ];
+
+      const correctionTasks = [
+        {
+          column: "参数映射",
+          tasks: [
+            "customerCode 从 OMS 订单查询结果继承",
+            "warehouseCode 按退货仓模板默认补齐",
+            "refundAmount 由明细金额自动计算"
+          ]
+        },
+        {
+          column: "步骤校正",
+          tasks: [
+            "WMS 收货必须在售后审核后执行",
+            "退款单创建前增加退货入库状态校验",
+            "补发出库单需要库存前置步骤"
+          ]
+        },
+        {
+          column: "校验点",
+          tasks: [
+            "RMA 状态变为 RECEIVED",
+            "FIN 退款单金额等于退货金额",
+            "OMS 售后状态回写成功"
+          ]
+        },
+        {
+          column: "执行护栏",
+          tasks: [
+            "退款接口 test 环境允许，pre 环境审批",
+            "真实支付渠道加入黑名单",
+            "试运行数量限制为 1 单"
+          ]
+        }
+      ];
+
+      const trialRunPlan = [
+        { step: "连接器预检", status: "passed", detail: "RMA / WMS / FIN test 环境连通" },
+        { step: "参数补齐", status: "passed", detail: "11 个槽位已由模板和前置步骤补齐" },
+        { step: "dry-run", status: "passed", detail: "写接口已命中允许列表，无生产域名" },
+        { step: "单步执行", status: "running", detail: "执行到 WMS 收货完成，等待退款单创建" },
+        { step: "结果报告", status: "pending", detail: "将输出业务单号、状态、耗时和失败重试建议" }
+      ];
+
+      function App() {
+        const navItems = [
+          { key: "value", label: "价值驾驶舱", role: "Leader", icon: "L", subtitle: "看平台能发挥多少价值" },
+          { key: "systems", label: "业务系统", role: "Owner", icon: "O", subtitle: "看系统是否正常与覆盖度" },
+          { key: "workspace", label: "场景工作台", role: "User", icon: "U", subtitle: "扫描、校正、开始造数" },
+          { key: "onboarding", label: "接入向导", role: "Builder", icon: "N", subtitle: "新系统到 E2E 场景" },
+          { key: "capability", label: "平台能力", role: "Platform", icon: "P", subtitle: "代码扫描、架构图、P0 场景" },
+          { key: "governance", label: "治理配置", role: "Admin", icon: "G", subtitle: "权限、环境、安全和模板" },
+          { key: "logs", label: "执行日志", role: "Ops", icon: "R", subtitle: "查执行步骤和结果" }
+        ];
+
+        const [activePage, setActivePage] = useState("value");
+        const [scenarioList, setScenarioList] = useState(fallbackScenarios);
+        const [systemList, setSystemList] = useState(fallbackSystems);
+        const [connectorList, setConnectorList] = useState(fallbackConnectors);
+        const [candidateList, setCandidateList] = useState(fallbackCandidates);
+        const [statusInfo, setStatusInfo] = useState(null);
+        const [logList, setLogList] = useState(fallbackLogs);
+        const [activeLog, setActiveLog] = useState(fallbackLogs[0]);
+        const [selectedSystem, setSelectedSystem] = useState("wms");
+        const [selectedId, setSelectedId] = useState(fallbackScenarios[1].id);
+        const [targetStage, setTargetStage] = useState(fallbackScenarios[1].defaultStage);
+        const [intent, setIntent] = useState("我需要造一笔销售订单并生成出库单，先做到分配库存完成");
+        const [params, setParams] = useState(defaultParams);
+        const [remoteSteps, setRemoteSteps] = useState(null);
+        const [loading, setLoading] = useState(false);
+
+        const activeMeta = navItems.find((item) => item.key === activePage) || navItems[0];
+        const selected = scenarioList.find((item) => item.id === selectedId) || scenarioList[0];
+        const planSteps = useMemo(() => {
+          if (remoteSteps?.scene === selected?.id && remoteSteps?.targetStage === targetStage) {
+            return remoteSteps.steps.map((step) => [
+              step.code,
+              step.name,
+              String(step.system || "").toUpperCase(),
+              `${step.method} ${step.path}`
+            ]);
+          }
+          return visibleSteps(selected, targetStage);
+        }, [selected, targetStage, remoteSteps]);
+
+        const systemRows = useMemo(() => {
+          return systemList.map((system) => {
+            const code = String(system.code).toLowerCase();
+            const scenes = scenarioList.filter((scene) =>
+              (scene.systems || []).map((item) => String(item).toLowerCase()).includes(code)
+            );
+            const candidates = candidateList.filter((candidate) =>
+              (candidate.systems || []).map((item) => String(item).toLowerCase()).includes(code)
+            );
+            const runs = logList.filter((log) => systemCodesForScene(scenarioList, log.scene).includes(code));
+            const summary = summarizeRuns(runs);
+            const connector = connectorList.find((item) => String(item.system).toLowerCase() === code);
+            const coverage = scenes.length + candidates.length;
+            const healthScore = Math.round(summary.successRate * 0.7 + (connector ? 20 : 0) + Math.min(10, scenes.length * 2));
+            return { system, code, scenes, candidates, runs, summary, connector, coverage, healthScore: Math.min(100, healthScore) };
+          });
+        }, [systemList, scenarioList, candidateList, logList, connectorList]);
+
+        const summary = useMemo(() => summarizeRuns(logList), [logList]);
+        const activeSystemRow = systemRows.find((row) => row.code === selectedSystem) || systemRows[0];
+        const activeP0Cases = activeSystemRow
+          ? p0CasesForSystem(activeSystemRow.code, activeSystemRow.scenes, activeSystemRow.candidates)
+          : [];
+        const selectedProfile = scenarioProfile(selected, candidateList, planSteps, logList);
+        const coverageRate = percent(scenarioList.length, scenarioList.length + candidateList.length);
+        const valueScore = Math.min(96, Math.round(summary.successRate * 0.45 + coverageRate * 0.35 + percent(systemRows.length, Math.max(3, systemRows.length)) * 0.2));
+        const savedHours = Math.max(1, Math.round(summary.month * 0.25 + scenarioList.length * 0.8));
+
+        async function refreshScenarios(selectScene) {
+          const rows = await api("/api/scenarios");
+          const mapped = rows.map(normalizeScenario);
+          setScenarioList(mapped);
+          if (selectScene) {
+            const next = mapped.find((item) => item.id === selectScene);
+            if (next) {
+              setSelectedId(next.id);
+              setTargetStage(next.defaultStage);
+              setRemoteSteps(null);
+            }
+          } else if (mapped.length && !mapped.some((item) => item.id === selectedId)) {
+            setSelectedId(mapped[0].id);
+            setTargetStage(mapped[0].defaultStage);
+          }
+          return mapped;
+        }
+
+        async function refreshLogs() {
+          try {
+            const rows = await api("/api/logs");
+            const mapped = rows.map((row) => ({
+              id: row.file,
+              scene: row.scene,
+              title: row.sceneName,
+              status: row.success ? "success" : "failed",
+              stage: row.targetStage,
+              time: row.finishedAt ? row.finishedAt.slice(11, 19) : "",
+              finishedAt: row.finishedAt,
+              result: { ...row.context, error: row.error },
+              steps: row.success ? ["执行完成", "状态校验通过"] : ["执行失败", row.error || "未知错误"]
+            }));
+            if (mapped.length) {
+              setLogList(mapped);
+              await loadLogDetail(mapped[0]);
+            }
+          } catch {
+            setLogList(fallbackLogs);
+          }
+        }
+
+        async function loadLogDetail(log) {
+          if (!log?.id || !String(log.id).endsWith(".json")) {
+            setActiveLog(log);
+            return;
+          }
+          try {
+            const detail = await api(`/api/logs/${encodeURIComponent(log.id)}`);
+            setActiveLog({ ...logFromResult(detail), id: log.id });
+          } catch {
+            setActiveLog(log);
+          }
+        }
+
+        async function refreshCandidates(runScan = false) {
+          try {
+            const data = await api(runScan ? "/api/scan" : "/api/candidates", {
+              method: runScan ? "POST" : "GET"
+            });
+            setCandidateList(data.candidateScenes || []);
+            if (runScan) message.success("扫描完成，候选场景已刷新");
+          } catch (error) {
+            if (runScan) message.error(error.message);
+          }
+        }
+
+        async function refreshAssets() {
+          try {
+            const [systems, connectors, status] = await Promise.all([
+              api("/api/systems"),
+              api("/api/connectors"),
+              api("/api/status")
+            ]);
+            setSystemList(systems.length ? systems : fallbackSystems);
+            setConnectorList(connectors.length ? connectors : fallbackConnectors);
+            setStatusInfo(status);
+            if (systems.length && !systems.some((system) => system.code === selectedSystem)) {
+              setSelectedSystem(systems[0].code);
+            }
+          } catch {
+            setSystemList(fallbackSystems);
+            setConnectorList(fallbackConnectors);
+          }
+        }
+
+        async function refreshAll() {
+          await Promise.allSettled([refreshScenarios(), refreshLogs(), refreshCandidates(), refreshAssets()]);
+        }
+
+        async function confirmCandidate(candidate) {
+          if (!candidate) return;
+          try {
+            setLoading(true);
+            const confirmed = await api(`/api/candidates/${encodeURIComponent(candidate.scene)}/confirm`, {
+              method: "POST"
+            });
+            await refreshScenarios(confirmed.scene);
+            await refreshCandidates(false);
+            message.success("候选场景已确认");
+          } catch (error) {
+            message.error(error.message);
+          } finally {
+            setLoading(false);
+          }
+        }
+
+        async function preview() {
+          try {
+            setLoading(true);
+            const data = await api("/api/preview", {
+              method: "POST",
+              body: JSON.stringify({ text: intent, params: compactParams(params) })
+            });
+            setSelectedId(data.plan.scene);
+            setTargetStage(data.plan.targetStage);
+            setRemoteSteps(data.plan);
+            message.success("已生成执行计划");
+          } catch {
+            const scenario = inferScenario(intent, scenarioList);
+            const stage = inferStage(intent, scenario);
+            setSelectedId(scenario.id);
+            setTargetStage(stage);
+            setRemoteSteps(null);
+            message.success("已生成本地预览");
+          } finally {
+            setLoading(false);
+          }
+        }
+
+        async function execute() {
+          try {
+            setLoading(true);
+            const result = await api("/api/execute", {
+              method: "POST",
+              body: JSON.stringify({
+                plan: {
+                  scene: selectedId,
+                  targetStage,
+                  params: compactParams(params),
+                  rawText: intent
+                }
+              })
+            });
+            message.success("执行完成");
+            setActiveLog(logFromResult(result));
+            await refreshLogs();
+            setActivePage("logs");
+          } catch (error) {
+            message.error(error.message);
+            if (error.data) setActiveLog(logFromResult(error.data));
+            await refreshLogs();
+          } finally {
+            setLoading(false);
+          }
+        }
+
+        async function rerunActive() {
+          await execute();
+        }
+
+        async function copyResult() {
+          const text = JSON.stringify(activeLog?.raw || activeLog?.result || {}, null, 2);
+          try {
+            await navigator.clipboard.writeText(text);
+            message.success("结果已复制");
+          } catch {
+            message.info(text);
+          }
+        }
+
+        useEffect(() => {
+          refreshAll();
+        }, []);
+
+        function metricCard(label, value, hint, color) {
+          return h("div", { className: "metric" },
+            h("div", { className: "metric-label" }, label),
+            h("div", { className: "metric-value", style: color ? { color } : null }, value),
+            h("div", { className: "metric-hint" }, hint)
+          );
+        }
+
+        function renderBar(label, value, max, color = "#1677ff") {
+          const width = max ? Math.max(6, Math.round((value / max) * 100)) : 0;
+          return h("div", { className: "bar-row", key: label },
+            h("div", { className: "bar-label", title: label }, label),
+            h("div", { className: "bar-track" },
+              h("div", { className: "bar-fill", style: { width: `${width}%`, background: color } })
+            ),
+            h("div", { className: "bar-value" }, value)
+          );
+        }
+
+        function renderRoleCard(pageKey, name, question) {
+          return h("div", {
+            className: `role-card ${activePage === pageKey ? "active" : ""}`,
+            onClick: () => setActivePage(pageKey)
+          },
+            h("div", { className: "role-name" }, name),
+            h("div", { className: "role-question" }, question)
+          );
+        }
+
+        function renderCoverageCard(item) {
+          const statusText = item.status === "covered" ? "已覆盖" : item.status === "candidate" ? "待确认" : "缺口";
+          const statusTag = item.status === "covered" ? "success" : item.status === "candidate" ? "warning" : "error";
+          return h("div", { className: `coverage-card ${item.status}`, key: item.id },
+            h("div", { className: "tag-row", style: { marginTop: 0, marginBottom: 8 } },
+              h(Tag, { color: item.priority === "P0" ? "red" : "orange" }, item.priority),
+              h(Tag, { color: statusTag }, statusText),
+              h(Tag, null, item.area)
+            ),
+            h("div", { className: "item-title" }, item.name),
+            h("div", { className: "item-subtitle" }, item.value),
+            item.status === "covered" && h(Button, {
+              size: "small",
+              style: { marginTop: 10 },
+              onClick: () => {
+                setSelectedId(item.scene.id);
+                setTargetStage(item.scene.defaultStage);
+                setRemoteSteps(null);
+                setActivePage("workspace");
+              }
+            }, "查看场景"),
+            item.status === "candidate" && h(Button, {
+              size: "small",
+              style: { marginTop: 10 },
+              onClick: () => confirmCandidate(item.candidate),
+              loading
+            }, "确认候选"),
+            item.status === "gap" && h("div", { className: "item-subtitle", style: { marginTop: 10 } }, "需要补接口证据、状态校验和参数模板")
+          );
+        }
+
+        function renderStateFlow(scene) {
+          return h("div", { className: "state-flow" },
+            (scene?.stages || []).map((stage) =>
+              h("div", { className: "state-chip", key: stage.value },
+                h("span", { className: "state-dot", style: { background: stage.value === scene.defaultStage ? "var(--green)" : "var(--blue)" } }),
+                h("div", null,
+                  h("div", { className: "slot-key" }, stage.value),
+                  h("div", { className: "item-subtitle", style: { marginTop: 0 } }, stage.label)
+                )
+              )
+            ),
+            renderScenarioDeepDive()
+          );
+        }
+
+        function renderStepDag() {
+          return h("div", { className: "dag" },
+            planSteps.map((step, index) =>
+              h("div", { className: "dag-node", key: `${step[0]}-${index}` },
+                h("div", { className: "tag-row", style: { marginTop: 0, marginBottom: 8 } },
+                  h(Tag, { color: systemTagColor(step[2]) }, step[2]),
+                  h(Tag, null, `Step ${index + 1}`)
+                ),
+                h("div", { className: "item-title" }, step[1]),
+                h("div", { className: "item-subtitle" }, step[3])
+              )
+            )
+          );
+        }
+
+        function renderScenarioDeepDive() {
+          return h("div", { className: "drill-grid" },
+            h("div", { className: "panel" },
+              h("div", { className: "panel-head" },
+                h("div", null,
+                  h("div", { className: "panel-title" }, "场景资产剖面"),
+                  h("div", { className: "panel-subtitle" }, selected?.description || "-")
+                ),
+                h(Tag, { color: "blue" }, selected?.defaultStage || "-")
+              ),
+              h("div", { className: "panel-body section-list" },
+                h("div", { className: "panel-title" }, "参数槽位"),
+                h("div", { className: "slot-grid" },
+                  selectedProfile.slots.map((slot) =>
+                    h("div", { className: "slot-card", key: slot.key },
+                      h("div", { className: "slot-key" }, slot.key),
+                      h("div", { className: "item-title", style: { marginTop: 6 } }, slot.name),
+                      h("div", { className: "tag-row" },
+                        h(Tag, { color: slot.type === "必填" ? "red" : slot.type === "自动生成" ? "green" : "blue" }, slot.type),
+                        h(Tag, null, slot.source)
+                      ),
+                      h("div", { className: "item-subtitle" }, `示例：${slot.example}`)
+                    )
+                  )
+                ),
+                h("div", { className: "panel-title" }, "步骤 DAG"),
+                renderStepDag()
+              )
+            ),
+            h("div", { className: "panel" },
+              h("div", { className: "panel-head" },
+                h("div", null,
+                  h("div", { className: "panel-title" }, "校验点与证据链"),
+                  h("div", { className: "panel-subtitle" }, "执行可信度来自规则和代码证据")
+                ),
+                h(Tag, null, `${selectedProfile.evidence.length} 条证据`)
+              ),
+              h("div", { className: "panel-body section-list" },
+                h("div", { className: "panel-title" }, "结果校验"),
+                h("div", { className: "rule-list" },
+                  selectedProfile.validations.map((rule, index) =>
+                    h("div", { className: "rule-item", key: rule },
+                      h("div", { className: "rule-mark" }, index + 1),
+                      h("div", { className: "item-subtitle", style: { marginTop: 1 } }, rule)
+                    )
+                  )
+                ),
+                h("div", { className: "panel-title" }, "执行护栏"),
+                h("div", { className: "rule-list" },
+                  selectedProfile.guards.map((rule, index) =>
+                    h("div", { className: "rule-item", key: rule },
+                      h("div", { className: "rule-mark" }, index + 1),
+                      h("div", { className: "item-subtitle", style: { marginTop: 1 } }, rule)
+                    )
+                  )
+                ),
+                h("div", { className: "panel-title" }, "代码证据"),
+                selectedProfile.evidence.map((item) =>
+                  h("div", { className: "item-card", key: `${item.title}-${item.detail}` },
+                    h("div", { className: "item-title" }, item.title),
+                    h("div", { className: "item-subtitle" }, item.detail)
+                  )
+                )
+              )
+            )
+          );
+        }
+
+        function renderValuePage() {
+          const maxRuns = Math.max(1, ...systemRows.map((row) => row.runs.length));
+          const maxScenes = Math.max(1, ...systemRows.map((row) => row.scenes.length + row.candidates.length));
+          const errorCounts = {};
+          logList.filter((log) => log.status !== "success").forEach((log) => {
+            const key = log.result?.error || "未知错误";
+            errorCounts[key] = (errorCounts[key] || 0) + 1;
+          });
+          const errors = Object.entries(errorCounts).sort((a, b) => b[1] - a[1]);
+
+          return h("section", { className: "page" },
+            h("div", { className: "hero" },
+              h("div", null,
+                h("h2", null, "从价值、系统、使用、能力四个视角看造数平台"),
+                h("div", { className: "hero-copy" },
+                  "Leader 看投入产出，业务系统 Owner 看健康和覆盖，使用者看如何快速扫描校正并开始造数，平台团队看代码理解和 P0 场景沉淀。"
+                ),
+                h("div", { className: "role-strip" },
+                  renderRoleCard("value", "Leader", "当前平台覆盖了多少系统，能节省多少人力，风险在哪里"),
+                  renderRoleCard("systems", "业务系统 Owner", "我的系统是否正常，关键 case 被覆盖了多少"),
+                  renderRoleCard("workspace", "使用者", "怎样最快扫描、录入、校正并开始执行造数"),
+                  renderRoleCard("capability", "平台建设者", "代码扫描、架构图、P0 场景整理能力是否成型")
+                )
+              ),
+              h("div", { className: "score-card" },
+                h("div", { className: "metric-label" }, "平台价值评分"),
+                h("div", { className: "score-value", style: { color: valueScore >= 80 ? "var(--green)" : "var(--gold)" } }, valueScore),
+                h(Progress, { percent: valueScore, showInfo: false, strokeColor: valueScore >= 80 ? "#52c41a" : "#faad14" }),
+                h("div", { className: "score-row" }, h("span", null, "场景覆盖"), h("strong", null, `${coverageRate}%`)),
+                h("div", { className: "score-row" }, h("span", null, "执行成功率"), h("strong", null, `${summary.successRate}%`)),
+                h("div", { className: "score-row" }, h("span", null, "本月节省人时"), h("strong", null, `${savedHours}h`))
+              )
+            ),
+            h("div", { className: "grid-4" },
+              metricCard("已接入业务系统", systemRows.length, "支持按系统观察场景覆盖、运行结果和连接器状态", "#0958d9"),
+              metricCard("正式可执行场景", scenarioList.length, `${candidateList.length} 个候选场景待确认`, "#08979c"),
+              metricCard("今日造数执行", summary.today, `本周 ${summary.week} 次，本月 ${summary.month} 次`, "#389e0d"),
+              metricCard("失败风险", summary.failed, summary.failed ? "需要定位失败接口或测试数据前置条件" : "最近执行无失败", summary.failed ? "#cf1322" : "#389e0d")
+            ),
+            h("div", { className: "grid-2" },
+              h("div", { className: "panel" },
+                h("div", { className: "panel-head" },
+                  h("div", null,
+                    h("div", { className: "panel-title" }, "业务系统价值矩阵"),
+                    h("div", { className: "panel-subtitle" }, "Leader 和系统 Owner 共同看的主表")
+                  ),
+                  h(Tag, { color: "blue" }, `${systemRows.length} 个系统`)
+                ),
+                h("div", { className: "panel-body" },
+                  h("div", { className: "matrix-row matrix-head" },
+                    h("div", null, "系统"),
+                    h("div", null, "健康"),
+                    h("div", null, "覆盖"),
+                    h("div", null, "运行"),
+                    h("div", null, "下一步")
+                  ),
+                  systemRows.map((row) =>
+                    h("div", { className: "matrix-row", key: row.code },
+                      h("div", { className: "matrix-cell" },
+                        h("div", { className: "item-title" }, `${row.system.code.toUpperCase()} · ${row.system.name}`),
+                        h("div", { className: "item-subtitle" }, row.system.repo || "未配置代码仓")
+                      ),
+                      h("div", { className: "matrix-cell" },
+                        h(Progress, { percent: row.healthScore, size: "small", strokeColor: row.healthScore >= 80 ? "#52c41a" : "#faad14" })
+                      ),
+                      h("div", { className: "matrix-cell" }, `${row.scenes.length} 正式 / ${row.candidates.length} 候选`),
+                      h("div", { className: "matrix-cell" }, `${row.runs.length} 次 · ${row.summary.successRate}%`),
+                      h("div", { className: "matrix-cell" }, row.candidates.length ? "确认候选场景" : row.summary.failed ? "处理失败链路" : "继续扩展 P0")
+                    )
+                  )
+                )
+              ),
+              h("div", { className: "panel" },
+                h("div", { className: "panel-head" },
+                  h("div", null,
+                    h("div", { className: "panel-title" }, "价值漏斗"),
+                    h("div", { className: "panel-subtitle" }, "从代码扫描到执行闭环")
+                  ),
+                  h(Tag, null, statusInfo?.scannedAt ? "已扫描" : "样例数据")
+                ),
+                h("div", { className: "panel-body section-list" },
+                  renderBar("扫描节点", statusInfo?.nodeCount || 22, Math.max(statusInfo?.nodeCount || 22, 22), "#0958d9"),
+                  renderBar("候选场景", candidateList.length, Math.max(1, scenarioList.length + candidateList.length), "#d48806"),
+                  renderBar("正式场景", scenarioList.length, Math.max(1, scenarioList.length + candidateList.length), "#08979c"),
+                  renderBar("本月执行", summary.month, Math.max(1, summary.month), "#389e0d"),
+                  errors.length
+                    ? errors.map(([name, count]) => renderBar(name, count, Math.max(...errors.map((item) => item[1])), "#cf1322"))
+                    : h("div", { className: "item-card" },
+                        h("div", { className: "item-title" }, "暂无失败聚类"),
+                        h("div", { className: "item-subtitle" }, "最近样本执行链路整体健康")
+                      )
+                )
+              )
+            )
+          );
+        }
+
+        function renderSystemsPage() {
+          const current = activeSystemRow;
+          if (!current) return h("section", { className: "page" }, h("div", { className: "panel panel-body" }, "暂无业务系统"));
+          const recentRuns = current.runs.slice(0, 8);
+          const gapCases = activeP0Cases.filter((item) => item.status !== "covered");
+          return h("section", { className: "page layout-3" },
+            h("div", { className: "panel" },
+              h("div", { className: "panel-head" },
+                h("div", null,
+                  h("div", { className: "panel-title" }, "业务系统列表"),
+                  h("div", { className: "panel-subtitle" }, "按系统 owner 视角看")
+                ),
+                h(Tag, null, `${systemRows.length} 个`)
+              ),
+              h("div", { className: "panel-body section-list" },
+                systemRows.map((row) =>
+                  h("div", {
+                    className: `item-card clickable ${selectedSystem === row.code ? "active" : ""}`,
+                    key: row.code,
+                    onClick: () => setSelectedSystem(row.code)
+                  },
+                    h("div", { className: "item-title" }, `${row.system.code.toUpperCase()} · ${row.system.name}`),
+                    h("div", { className: "tag-row" },
+                      h(Tag, { color: row.healthScore >= 80 ? "success" : "warning" }, `健康 ${row.healthScore}`),
+                      h(Tag, { color: "blue" }, `${row.scenes.length} 场景`),
+                      h(Tag, null, `${row.runs.length} 运行`)
+                    )
+                  )
+                )
+              )
+            ),
+            h("div", { className: "panel" },
+              h("div", { className: "panel-head" },
+                h("div", null,
+                  h("div", { className: "panel-title" }, `${current.system.name} 运行与覆盖`),
+                  h("div", { className: "panel-subtitle" }, current.system.repo || "未配置代码仓")
+                ),
+                h(Tag, { color: "blue" }, current.system.code.toUpperCase())
+              ),
+              h("div", { className: "panel-body section-list" },
+                h("div", { className: "grid-4" },
+                  metricCard("正式场景", current.scenes.length, `${current.candidates.length} 个候选待确认`, "#0958d9"),
+                  metricCard("今日运行", current.summary.today, `本周 ${current.summary.week} 次`, "#389e0d"),
+                  metricCard("成功率", `${current.summary.successRate}%`, `${current.summary.failed} 次失败`, current.summary.successRate >= 90 ? "#389e0d" : "#d48806"),
+                  metricCard("连接器", current.connector ? "已接入" : "未接入", current.connector?.baseUrl || "需要配置测试环境", current.connector ? "#08979c" : "#cf1322")
+                ),
+                h("div", { className: "panel-title" }, "P0/P1 覆盖地图"),
+                h("div", { className: "coverage-map" },
+                  activeP0Cases.map(renderCoverageCard)
+                ),
+                current.scenes[0] && h("div", { className: "panel-title" }, "核心状态流"),
+                current.scenes[0] && renderStateFlow(current.scenes[0]),
+                h("div", { className: "panel-title" }, "已覆盖 case"),
+                h("div", { className: "grid-2" },
+                  current.scenes.map((scene) =>
+                    h("div", { className: "item-card", key: scene.id },
+                      h("div", { className: "item-title" }, scene.name),
+                      h("div", { className: "item-subtitle" }, scene.description),
+                      h("div", { className: "tag-row" },
+                        (scene.stages || []).slice(0, 4).map((stage) => h(Tag, { key: stage.value }, stage.label)),
+                        scene.sourceCandidate && h(Tag, { color: "purple" }, "扫描确认")
+                      )
+                    )
+                  )
+                )
+              )
+            ),
+            h("div", { className: "panel" },
+              h("div", { className: "panel-head" },
+                h("div", null,
+                  h("div", { className: "panel-title" }, "Owner 关注项"),
+                  h("div", { className: "panel-subtitle" }, "运行结果、候选场景和风险")
+                ),
+                h(Button, { size: "small", onClick: refreshAll, loading }, "刷新")
+              ),
+              h("div", { className: "panel-body section-list" },
+                h("div", { className: "item-card" },
+                  h("div", { className: "item-title" }, "系统健康判断"),
+                  h("div", { className: "item-subtitle" },
+                    current.summary.failed
+                      ? "存在失败执行，需要检查接口返回、库存前置条件或连接器配置"
+                      : "最近执行正常，可以继续扩大 P0 场景覆盖"
+                  )
+                ),
+                h("div", { className: "panel-title" }, "缺口队列"),
+                gapCases.length
+                  ? gapCases.map((item) =>
+                      h("div", { className: "item-card", key: item.id },
+                        h("div", { className: "item-title" }, item.name),
+                        h("div", { className: "item-subtitle" }, item.value),
+                        h("div", { className: "tag-row" },
+                          h(Tag, { color: item.priority === "P0" ? "red" : "orange" }, item.priority),
+                          h(Tag, { color: item.status === "candidate" ? "warning" : "error" }, item.status === "candidate" ? "待确认" : "未覆盖")
+                        )
+                      )
+                    )
+                  : h("div", { className: "item-card" }, h("div", { className: "item-title" }, "P0/P1 已覆盖")),
+                h("div", { className: "panel-title" }, "候选场景"),
+                current.candidates.length
+                  ? current.candidates.map((candidate) =>
+                      h("div", { className: "item-card", key: candidate.scene },
+                        h("div", { className: "item-title" }, candidate.name),
+                        h("div", { className: "item-subtitle" }, `置信度 ${Math.round(candidate.confidence * 100)}% · ${candidate.evidence?.length || 0} 条证据`),
+                        h(Button, { size: "small", style: { marginTop: 10 }, onClick: () => confirmCandidate(candidate), loading }, "确认")
+                      )
+                    )
+                  : h("div", { className: "item-card" }, h("div", { className: "item-title" }, "暂无候选场景")),
+                h("div", { className: "panel-title" }, "最近运行"),
+                recentRuns.length
+                  ? recentRuns.map((log) =>
+                      h("div", { className: "item-card clickable", key: log.id, onClick: () => { loadLogDetail(log); setActivePage("logs"); } },
+                        h("div", { className: "item-title" }, log.title),
+                        h("div", { className: "item-subtitle" }, `${log.time} · ${log.stage}`),
+                        h("div", { className: "tag-row" }, h(Tag, { color: statusColor(log.status) }, log.status))
+                      )
+                    )
+                  : h("div", { className: "item-card" }, h("div", { className: "item-title" }, "暂无运行记录"))
+              )
+            )
+          );
+        }
+
+        function renderWorkspacePage() {
+          return h("section", { className: "page" },
+            h("div", { className: "pipeline" },
+              ["扫描业务系统", "生成候选场景", "人工校正确认", "自然语言造数", "执行结果沉淀"].map((name, index) =>
+                h("div", { className: "pipeline-step", key: name },
+                  h("div", { className: "pipeline-index" }, index + 1),
+                  h("div", { className: "item-title" }, name),
+                  h("div", { className: "item-subtitle" },
+                    [
+                      "读取接口、实体、状态流转",
+                      "按业务语义聚合 P0 case",
+                      "把候选变成正式场景",
+                      "自动组织参数和步骤",
+                      "日志反哺场景质量"
+                    ][index]
+                  )
+                )
+              )
+            ),
+            h("div", { className: "workbench" },
+              h("div", { className: "panel" },
+                h("div", { className: "panel-head" },
+                  h("div", null,
+                    h("div", { className: "panel-title" }, "场景和候选"),
+                    h("div", { className: "panel-subtitle" }, "使用者从这里开始校正")
+                  ),
+                  h(Button, { size: "small", onClick: () => refreshCandidates(true), loading }, "扫描")
+                ),
+                h("div", { className: "panel-body section-list scroll", style: { maxHeight: 640 } },
+                  scenarioList.map((scene) =>
+                    h("div", {
+                      key: scene.id,
+                      className: `item-card clickable ${selectedId === scene.id ? "active" : ""}`,
+                      onClick: () => {
+                        setSelectedId(scene.id);
+                        setTargetStage(scene.defaultStage);
+                        setRemoteSteps(null);
+                      }
+                    },
+                      h("div", { className: "item-title" }, scene.name),
+                      h("div", { className: "item-subtitle" }, scene.description),
+                      h("div", { className: "tag-row" },
+                        (scene.systems || []).map((system) => h(Tag, { key: system, color: systemTagColor(system) }, system)),
+                        h(Tag, { color: "green" }, scene.defaultStage)
+                      )
+                    )
+                  ),
+                  h("div", { className: "panel-title", style: { marginTop: 6 } }, "待确认候选"),
+                  candidateList.map((candidate) =>
+                    h("div", { className: "item-card", key: candidate.scene },
+                      h("div", { className: "item-title" }, candidate.name),
+                      h("div", { className: "item-subtitle" }, `置信度 ${Math.round(candidate.confidence * 100)}% · ${candidate.evidence?.length || 0} 条证据`),
+                      h("div", { className: "tag-row" },
+                        (candidate.systems || []).map((system) => h(Tag, { key: system }, String(system).toUpperCase())),
+                        h(Button, { size: "small", onClick: () => confirmCandidate(candidate), loading }, "确认")
+                      )
+                    )
+                  )
+                )
+              ),
+              h("div", { className: "panel" },
+                h("div", { className: "panel-head" },
+                  h("div", null,
+                    h("div", { className: "panel-title" }, "自然语言造数"),
+                    h("div", { className: "panel-subtitle" }, "预览计划后再执行")
+                  ),
+                  h(Space, null,
+                    h(Button, { onClick: preview, loading }, "生成计划"),
+                    h(Button, { type: "primary", onClick: execute, loading }, "执行")
+                  )
+                ),
+                h("div", { className: "panel-body section-list" },
+                  h("div", { className: "intent-box" },
+                    h(Input.TextArea, {
+                      value: intent,
+                      rows: 4,
+                      onChange: (event) => setIntent(event.target.value)
+                    }),
+                    h("div", { className: "param-grid" },
+                      h(Input, { addonBefore: "仓库", value: params.warehouseCode, onChange: (event) => setParams({ ...params, warehouseCode: event.target.value }) }),
+                      h(Input, { addonBefore: "货主", value: params.ownerCode, onChange: (event) => setParams({ ...params, ownerCode: event.target.value }) }),
+                      h(Input, { addonBefore: "客户", value: params.customerCode, onChange: (event) => setParams({ ...params, customerCode: event.target.value }) }),
+                      h(InputNumber, { addonBefore: "数量", min: 1, value: params.qty, style: { width: "100%" }, onChange: (value) => setParams({ ...params, qty: value || 1 }) })
+                    ),
+                    h(Select, {
+                      value: targetStage,
+                      onChange: setTargetStage,
+                      options: (selected?.stages || []).map((stage) => ({ value: stage.value, label: stage.label })),
+                      style: { width: "100%" }
+                    })
+                  ),
+                  h("div", { className: "grid-3" },
+                    metricCard("命中场景", selected?.name || "-", selected?.id || ""),
+                    metricCard("目标阶段", targetStage, `${planSteps.length} 个步骤`),
+                    metricCard("涉及系统", (selected?.systems || []).join(" / "), "自动按系统调用接口")
+                  ),
+                  h("div", { className: "section-list" },
+                    planSteps.map((step, index) =>
+                      h("div", { className: "step-card", key: `${step[0]}-${index}` },
+                        h("div", { className: "step-top" },
+                          h("div", null,
+                            h("div", { className: "step-name" }, `${index + 1}. ${step[1]}`),
+                            h("div", { className: "step-api" }, step[3])
+                          ),
+                          h(Tag, { color: systemTagColor(step[2]) }, step[2])
+                        )
+                      )
+                    )
+                  )
+                )
+              ),
+              h("div", { className: "panel" },
+                h("div", { className: "panel-head" },
+                  h("div", null,
+                    h("div", { className: "panel-title" }, "扫描证据"),
+                    h("div", { className: "panel-subtitle" }, "帮助快速校正场景")
+                  ),
+                  h(Tag, null, `${candidateList.length} 候选`)
+                ),
+                h("div", { className: "panel-body section-list scroll", style: { maxHeight: 640 } },
+                  candidateList.flatMap((candidate) =>
+                    (candidate.evidence || []).slice(0, 4).map((item, index) =>
+                      h("div", { className: "item-card", key: `${candidate.scene}-${index}` },
+                        h("div", { className: "item-title" }, item.api),
+                        h("div", { className: "item-subtitle" }, `${candidate.name} · ${item.stepHint || "步骤待确认"}`),
+                        h("div", { className: "tag-row" },
+                          h(Tag, { color: "blue" }, `${Math.round(candidate.confidence * 100)}%`),
+                          h(Tag, null, `${item.evidence?.file || "unknown"}:${item.evidence?.line || "-"}`)
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          );
+        }
+
+        function renderCapabilityPage() {
+          const p0Scenes = scenarioList.filter((scene) => scene.defaultStage || scene.sourceCandidate);
+          return h("section", { className: "page" },
+            h("div", { className: "panel" },
+              h("div", { className: "panel-head" },
+                h("div", null,
+                  h("div", { className: "panel-title" }, "平台能力图谱"),
+                  h("div", { className: "panel-subtitle" }, "扫描代码、理解业务、沉淀场景、执行闭环")
+                ),
+                h(Tag, { color: statusInfo?.ok ? "success" : "default" }, statusInfo?.ok ? "服务正常" : "样例模式")
+              ),
+              h("div", { className: "panel-body" },
+                h("div", { className: "arch-map" },
+                  h("div", { className: "arch-node" }, h("div", { className: "item-title" }, "业务代码库"), h("div", { className: "item-subtitle" }, "Go / Vue / React / App")),
+                  h("div", { className: "arch-arrow" }, "→"),
+                  h("div", { className: "arch-node" }, h("div", { className: "item-title" }, "代码扫描器"), h("div", { className: "item-subtitle" }, `${statusInfo?.nodeCount || 22} 节点`)),
+                  h("div", { className: "arch-arrow" }, "→"),
+                  h("div", { className: "arch-node" }, h("div", { className: "item-title" }, "场景注册表"), h("div", { className: "item-subtitle" }, `${scenarioList.length} 正式 / ${candidateList.length} 候选`)),
+                  h("div", { className: "arch-arrow" }, "→"),
+                  h("div", { className: "arch-node" }, h("div", { className: "item-title" }, "Agent 编排执行"), h("div", { className: "item-subtitle" }, `${summary.successRate}% 成功率`))
+                )
+              )
+            ),
+            h("div", { className: "grid-3" },
+              h("div", { className: "panel" },
+                h("div", { className: "panel-head" }, h("div", { className: "panel-title" }, "代码理解能力")),
+                h("div", { className: "panel-body section-list" },
+                  renderBar("接口识别", statusInfo?.nodeCount || 22, Math.max(22, statusInfo?.nodeCount || 22), "#0958d9"),
+                  renderBar("业务状态识别", candidateList.length + scenarioList.length, Math.max(1, candidateList.length + scenarioList.length), "#08979c"),
+                  renderBar("跨系统链路", scenarioList.filter((scene) => (scene.systems || []).length > 1).length, Math.max(1, scenarioList.length), "#d48806")
+                )
+              ),
+              h("div", { className: "panel" },
+                h("div", { className: "panel-head" }, h("div", { className: "panel-title" }, "P0 场景整理")),
+                h("div", { className: "panel-body section-list" },
+                  p0Scenes.slice(0, 6).map((scene) =>
+                    h("div", { className: "item-card", key: scene.id },
+                      h("div", { className: "item-title" }, scene.name),
+                      h("div", { className: "tag-row" },
+                        (scene.systems || []).map((system) => h(Tag, { key: system, color: systemTagColor(system) }, system)),
+                        h(Tag, { color: scene.sourceCandidate ? "purple" : "green" }, scene.sourceCandidate ? "扫描确认" : "内置")
+                      )
+                    )
+                  )
+                )
+              ),
+              h("div", { className: "panel" },
+                h("div", { className: "panel-head" }, h("div", { className: "panel-title" }, "接入能力")),
+                h("div", { className: "panel-body section-list" },
+                  connectorList.map((connector) =>
+                    h("div", { className: "item-card", key: `${connector.system}-${connector.env}` },
+                      h("div", { className: "item-title" }, `${String(connector.system).toUpperCase()} · ${connector.env}`),
+                      h("div", { className: "item-subtitle" }, connector.baseUrl),
+                      h("div", { className: "tag-row" },
+                        h(Tag, { color: "blue" }, `auth ${connector.auth?.type || "unknown"}`),
+                        h(Tag, { color: connector.safety?.blacklist?.length ? "orange" : "green" }, `blacklist ${connector.safety?.blacklist?.length || 0}`)
+                      )
+                    )
+                  )
+                )
+              )
+            ),
+            h("div", { className: "grid-2" },
+              h("div", { className: "panel" },
+                h("div", { className: "panel-head" },
+                  h("div", null,
+                    h("div", { className: "panel-title" }, "扫描任务下钻"),
+                    h("div", { className: "panel-subtitle" }, "每个业务系统从代码到候选场景的产出质量")
+                  ),
+                  h(Button, { size: "small", onClick: () => refreshCandidates(true), loading }, "重新扫描")
+                ),
+                h("div", { className: "panel-body section-list" },
+                  scanRuns.map((run) =>
+                    h("div", { className: "scan-run", key: run.id },
+                      h("div", null,
+                        h("div", { className: "item-title" }, run.system),
+                        h("div", { className: "item-subtitle" }, run.id)
+                      ),
+                      h("div", null,
+                        h(Progress, { percent: run.quality, size: "small", strokeColor: run.quality >= 80 ? "#52c41a" : "#faad14" }),
+                        h("div", { className: "item-subtitle" }, `${run.nodes} 节点 · ${run.candidates} 候选 · ${run.duration}`)
+                      ),
+                      h(Tag, { color: run.status === "done" ? "success" : "warning" }, run.status === "done" ? "完成" : "部分完成")
+                    )
+                  )
+                )
+              ),
+              h("div", { className: "panel" },
+                h("div", { className: "panel-head" },
+                  h("div", null,
+                    h("div", { className: "panel-title" }, "候选质量门禁"),
+                    h("div", { className: "panel-subtitle" }, "候选场景进入正式场景前需要满足的条件")
+                  ),
+                  h(Tag, { color: "blue" }, "Quality Gate")
+                ),
+                h("div", { className: "panel-body section-list" },
+                  [
+                    ["接口证据", "至少识别创建、状态推进、查询校验 3 类接口"],
+                    ["状态证据", "必须能提取目标状态和停止步骤"],
+                    ["参数证据", "必填参数可由模板、默认值或前置步骤补齐"],
+                    ["安全证据", "执行环境、黑名单、审批策略通过预检"]
+                  ].map(([name, desc], index) =>
+                    h("div", { className: "rule-item", key: name },
+                      h("div", { className: "rule-mark" }, index + 1),
+                      h("div", null,
+                        h("div", { className: "item-title" }, name),
+                        h("div", { className: "item-subtitle" }, desc)
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          );
+        }
+
+        function renderGovernancePage() {
+          return h("section", { className: "page" },
+            h("div", { className: "grid-4" },
+              metricCard("启用策略", governancePolicies.filter((item) => item.status === "enabled").length, `${governancePolicies.length} 条治理策略`),
+              metricCard("环境边界", environmentPolicies.length, "dev / test / pre / prod"),
+              metricCard("参数模板", parameterTemplates.length, "按业务场景复用默认参数"),
+              metricCard("风险待办", riskBacklog.length, "阻断平台生产化的问题")
+            ),
+            h("div", { className: "policy-grid" },
+              governancePolicies.map((policy) =>
+                h("div", { className: "policy-card", key: policy.id },
+                  h("div", { className: "tag-row", style: { marginTop: 0 } },
+                    h(Tag, { color: policy.status === "enabled" ? "success" : "warning" }, policy.status === "enabled" ? "已启用" : "草稿"),
+                    h(Tag, null, policy.owner)
+                  ),
+                  h("div", { className: "item-title", style: { marginTop: 10 } }, policy.name),
+                  h("div", { className: "item-subtitle" }, policy.description),
+                  h("div", { className: "rule-list", style: { marginTop: 10 } },
+                    policy.rules.map((rule, index) =>
+                      h("div", { className: "rule-item", key: rule },
+                        h("div", { className: "rule-mark" }, index + 1),
+                        h("div", { className: "item-subtitle", style: { marginTop: 1 } }, rule)
+                      )
+                    )
+                  )
+                )
+              )
+            ),
+            h("div", { className: "grid-2" },
+              h("div", { className: "panel" },
+                h("div", { className: "panel-head" },
+                  h("div", null,
+                    h("div", { className: "panel-title" }, "环境执行矩阵"),
+                    h("div", { className: "panel-subtitle" }, "决定 agent 可以在哪些环境做什么")
+                  ),
+                  h(Tag, { color: "blue" }, `${environmentPolicies.length} 个环境`)
+                ),
+                h("div", { className: "panel-body" },
+                  environmentPolicies.map((env) =>
+                    h("div", { className: "config-row", key: env.env },
+                      h("div", null,
+                        h("div", { className: "item-title" }, env.env.toUpperCase()),
+                        h("div", { className: "item-subtitle" }, env.scope)
+                      ),
+                      h("div", { className: "tag-row", style: { marginTop: 0 } },
+                        h(Tag, { color: env.execution === "允许" ? "success" : env.execution === "受限" ? "warning" : "error" }, env.execution),
+                        h(Tag, null, env.approval),
+                        h(Tag, null, `保留 ${env.retention}`)
+                      ),
+                      h(Button, { size: "small" }, "配置")
+                    )
+                  )
+                )
+              ),
+              h("div", { className: "panel" },
+                h("div", { className: "panel-head" },
+                  h("div", null,
+                    h("div", { className: "panel-title" }, "连接器安全"),
+                    h("div", { className: "panel-subtitle" }, "系统接入后必须显式配置安全边界")
+                  ),
+                  h(Tag, null, `${connectorList.length} 个连接器`)
+                ),
+                h("div", { className: "panel-body section-list" },
+                  connectorList.map((connector) =>
+                    h("div", { className: "item-card", key: `${connector.system}-${connector.env}` },
+                      h("div", { className: "item-title" }, `${String(connector.system).toUpperCase()} · ${connector.env}`),
+                      h("div", { className: "item-subtitle" }, connector.baseUrl),
+                      h("div", { className: "tag-row" },
+                        h(Tag, { color: "blue" }, `auth ${connector.auth?.type || "unknown"}`),
+                        h(Tag, { color: connector.safety?.blacklist?.length ? "orange" : "green" }, `blacklist ${connector.safety?.blacklist?.length || 0}`),
+                        h(Tag, { color: "purple" }, "审计开启")
+                      )
+                    )
+                  )
+                )
+              )
+            ),
+            h("div", { className: "grid-2" },
+              h("div", { className: "panel" },
+                h("div", { className: "panel-head" },
+                  h("div", null,
+                    h("div", { className: "panel-title" }, "参数模板"),
+                    h("div", { className: "panel-subtitle" }, "让使用者少填参数，agent 可自动补齐")
+                  ),
+                  h(Button, { size: "small", onClick: () => setActivePage("workspace") }, "去造数")
+                ),
+                h("div", { className: "panel-body section-list" },
+                  parameterTemplates.map((template) =>
+                    h("div", { className: "item-card", key: template.id },
+                      h("div", { className: "item-title" }, template.name),
+                      h("div", { className: "tag-row" },
+                        template.systems.map((system) => h(Tag, { key: system, color: systemTagColor(system) }, system)),
+                        h(Tag, null, `${template.fields.length} 个字段`)
+                      ),
+                      h("pre", { className: "template-preview", style: { marginTop: 10 } }, JSON.stringify(template.defaults, null, 2))
+                    )
+                  )
+                )
+              ),
+              h("div", { className: "panel" },
+                h("div", { className: "panel-head" },
+                  h("div", null,
+                    h("div", { className: "panel-title" }, "风险待办"),
+                    h("div", { className: "panel-subtitle" }, "阻止平台扩大使用范围的问题")
+                  ),
+                  h(Tag, { color: "orange" }, `${riskBacklog.length} 项`)
+                ),
+                h("div", { className: "panel-body section-list" },
+                  riskBacklog.map((risk) =>
+                    h("div", { className: "risk-card", key: risk.title },
+                      h("div", { className: "tag-row", style: { marginTop: 0 } },
+                        h(Tag, { color: risk.level === "P0" ? "red" : "orange" }, risk.level),
+                        h(Tag, null, risk.owner)
+                      ),
+                      h("div", { className: "item-title", style: { marginTop: 8 } }, risk.title),
+                      h("div", { className: "item-subtitle" }, risk.action)
+                    )
+                  )
+                )
+              )
+            )
+          );
+        }
+
+        function renderOnboardingPage() {
+          const activeScene = e2eGeneratedScenes[0];
+          return h("section", { className: "page" },
+            h("div", { className: "panel" },
+              h("div", { className: "panel-head" },
+                h("div", null,
+                  h("div", { className: "panel-title" }, "新业务系统接入主流程"),
+                  h("div", { className: "panel-subtitle" }, "从系统注册、代码分析、E2E 场景生成，到人工校正和试运行")
+                ),
+                h(Space, null,
+                  h(Button, { onClick: () => setActivePage("governance") }, "配置治理"),
+                  h(Button, { type: "primary", onClick: () => setActivePage("workspace") }, "进入工作台")
+                )
+              ),
+              h("div", { className: "panel-body" },
+                h("div", { className: "journey" },
+                  onboardingJourney.map((step, index) =>
+                    h("div", { className: `journey-step ${step.status}`, key: step.key },
+                      h("div", { className: "step-index" }, index + 1),
+                      h("div", { className: "item-title" }, step.name),
+                      h("div", { className: "item-subtitle" }, step.desc),
+                      h("div", { className: "tag-row" },
+                        h(Tag, { color: step.status === "done" ? "success" : step.status === "active" ? "blue" : "default" },
+                          step.status === "done" ? "已完成" : step.status === "active" ? "进行中" : "待处理"
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            ),
+            h("div", { className: "grid-2" },
+              h("div", { className: "panel" },
+                h("div", { className: "panel-head" },
+                  h("div", null,
+                    h("div", { className: "panel-title" }, "1. 注册业务系统"),
+                    h("div", { className: "panel-subtitle" }, "登记系统身份、代码仓、测试环境和安全边界")
+                  ),
+                  h(Tag, { color: "blue" }, newSystemDraft.code.toUpperCase())
+                ),
+                h("div", { className: "panel-body" },
+                  h("div", { className: "form-grid" },
+                    Object.entries({
+                      "系统编码": newSystemDraft.code,
+                      "系统名称": newSystemDraft.name,
+                      "负责人": newSystemDraft.owner,
+                      "代码仓": newSystemDraft.repo,
+                      "分支": newSystemDraft.branch,
+                      "后端技术": `${newSystemDraft.language} · ${newSystemDraft.framework}`,
+                      "前端/App": `${newSystemDraft.frontend} / ${newSystemDraft.app}`,
+                      "测试环境": newSystemDraft.baseUrl,
+                      "认证方式": newSystemDraft.auth,
+                      "目标环境": newSystemDraft.env
+                    }).map(([label, value]) =>
+                      h("div", { className: "field-card", key: label },
+                        h("div", { className: "metric-label" }, label),
+                        h("div", { className: "item-title" }, value)
+                      )
+                    )
+                  )
+                )
+              ),
+              h("div", { className: "panel" },
+                h("div", { className: "panel-head" },
+                  h("div", null,
+                    h("div", { className: "panel-title" }, "2. 代码分析产物"),
+                    h("div", { className: "panel-subtitle" }, "扫描接口、实体、状态机和跨系统依赖")
+                  ),
+                  h(Button, { size: "small", onClick: () => setActivePage("capability") }, "看扫描能力")
+                ),
+                h("div", { className: "panel-body artifact-grid" },
+                  codeAnalysisArtifacts.map((artifact) =>
+                    h("div", { className: "artifact-card", key: artifact.name },
+                      h("div", { className: "metric-label" }, artifact.name),
+                      h("div", { className: "metric-value", style: { color: "#0958d9" } }, artifact.value),
+                      h("div", { className: "item-subtitle" }, artifact.desc)
+                    )
+                  )
+                )
+              )
+            ),
+            h("div", { className: "panel" },
+              h("div", { className: "panel-head" },
+                h("div", null,
+                  h("div", { className: "panel-title" }, "3. 自动生成 E2E 候选场景"),
+                  h("div", { className: "panel-subtitle" }, "从接口、状态机和跨系统依赖推导端到端业务路径")
+                ),
+                h(Tag, { color: "purple" }, `${e2eGeneratedScenes.length} 个候选`)
+              ),
+              h("div", { className: "panel-body section-list" },
+                e2eGeneratedScenes.map((scene) =>
+                  h("div", { className: "e2e-lane", key: scene.id },
+                    h("div", { className: "tag-row", style: { marginTop: 0 } },
+                      h(Tag, { color: scene.confidence >= 85 ? "success" : "warning" }, `置信度 ${scene.confidence}%`),
+                      h(Tag, { color: "blue" }, scene.target),
+                      scene.systems.map((system) => h(Tag, { key: system, color: systemTagColor(system) }, system))
+                    ),
+                    h("div", { className: "item-title", style: { marginTop: 8 } }, scene.name),
+                    h("div", { className: "e2e-flow" },
+                      scene.flow.map((node, index) =>
+                        h("div", { className: "e2e-node", key: `${scene.id}-${node}` },
+                          h("div", { className: "step-index", style: { marginBottom: 8 } }, index + 1),
+                          h("div", { className: "item-title" }, node),
+                          h("div", { className: "item-subtitle" }, scene.evidence[index] || "待补证据")
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            ),
+            h("div", { className: "grid-2" },
+              h("div", { className: "panel" },
+                h("div", { className: "panel-head" },
+                  h("div", null,
+                    h("div", { className: "panel-title" }, "4. 场景校正操作流"),
+                    h("div", { className: "panel-subtitle" }, "候选场景进入正式库前要完成的人工确认")
+                  ),
+                  h(Tag, { color: "blue" }, activeScene.name)
+                ),
+                h("div", { className: "panel-body correction-board" },
+                  correctionTasks.map((column) =>
+                    h("div", { className: "correction-column", key: column.column },
+                      h("div", { className: "item-title" }, column.column),
+                      h("div", { className: "section-list", style: { marginTop: 10 } },
+                        column.tasks.map((task, index) =>
+                          h("div", { className: "rule-item", key: task },
+                            h("div", { className: "rule-mark" }, index + 1),
+                            h("div", { className: "item-subtitle", style: { marginTop: 1 } }, task)
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              ),
+              h("div", { className: "panel" },
+                h("div", { className: "panel-head" },
+                  h("div", null,
+                    h("div", { className: "panel-title" }, "5. 试运行和发布"),
+                    h("div", { className: "panel-subtitle" }, "先 dry-run，再单步执行，最后发布到正式场景库")
+                  ),
+                  h(Button, { size: "small", onClick: () => setActivePage("logs") }, "看日志")
+                ),
+                h("div", { className: "panel-body section-list" },
+                  trialRunPlan.map((step, index) =>
+                    h("div", { className: "trial-step", key: step.step },
+                      h("div", { className: "rule-mark" }, index + 1),
+                      h("div", null,
+                        h("div", { className: "item-title" }, step.step),
+                        h("div", { className: "item-subtitle" }, step.detail)
+                      ),
+                      h(Tag, {
+                        color: step.status === "passed" ? "success" : step.status === "running" ? "processing" : "default"
+                      }, step.status === "passed" ? "通过" : step.status === "running" ? "执行中" : "待执行")
+                    )
+                  ),
+                  h("div", { className: "item-card" },
+                    h("div", { className: "item-title" }, "发布条件"),
+                    h("div", { className: "item-subtitle" }, "试运行成功、校验点齐全、治理策略通过、Owner 确认后，进入正式场景库供自然语言调用。")
+                  )
+                )
+              )
+            )
+          );
+        }
+
+        function renderLogsPage() {
+          return h("section", { className: "page layout-3" },
+            h("div", { className: "panel" },
+              h("div", { className: "panel-head" },
+                h("div", null,
+                  h("div", { className: "panel-title" }, "执行记录"),
+                  h("div", { className: "panel-subtitle" }, "最近 50 次")
+                ),
+                h(Button, { size: "small", onClick: refreshLogs, loading }, "刷新")
+              ),
+              h("div", { className: "scroll", style: { maxHeight: 720 } },
+                logList.map((log) =>
+                  h("div", {
+                    className: `log-row ${activeLog?.id === log.id ? "active" : ""}`,
+                    key: log.id,
+                    onClick: () => loadLogDetail(log)
+                  },
+                    h("div", { className: "log-top" },
+                      h("div", { className: "log-title" }, log.title),
+                      h(Tag, { color: statusColor(log.status) }, log.status)
+                    ),
+                    h("div", { className: "log-desc" }, `${log.time} · ${log.stage}`)
+                  )
+                )
+              )
+            ),
+            h("div", { className: "panel" },
+              h("div", { className: "panel-head" },
+                h("div", null,
+                  h("div", { className: "panel-title" }, "步骤链路"),
+                  h("div", { className: "panel-subtitle" }, activeLog?.title || "-")
+                ),
+                h(Space, null,
+                  h(Button, { size: "small", onClick: rerunActive, loading }, "重跑"),
+                  h(Button, { size: "small", onClick: copyResult }, "复制")
+                )
+              ),
+              h("div", { className: "panel-body" },
+                h(Timeline, {
+                  items: (activeLog?.steps || []).map((step) => ({
+                    color: /失败|FAILED/i.test(step) ? "red" : "blue",
+                    children: step
+                  }))
+                }),
+                activeLog?.raw?.logs?.length > 0 && h(Collapse, {
+                  size: "small",
+                  style: { marginTop: 10 },
+                  items: activeLog.raw.logs.map((step, index) => ({
+                    key: step.step || String(index),
+                    label: `${index + 1}. ${step.name} · ${step.status}`,
+                    children: h("pre", { className: "detail-block" }, JSON.stringify({
+                      request: step.request,
+                      response: step.response,
+                      error: step.error,
+                      durationMs: step.durationMs
+                    }, null, 2))
+                  }))
+                })
+              )
+            ),
+            h("div", { className: "panel" },
+              h("div", { className: "panel-head" }, h("div", { className: "panel-title" }, "结果上下文")),
+              h("div", { className: "panel-body" },
+                h("pre", { className: "detail-block" }, JSON.stringify(activeLog?.raw || activeLog?.result || {}, null, 2))
+              )
+            )
+          );
+        }
+
+        function renderActivePage() {
+          if (activePage === "systems") return renderSystemsPage();
+          if (activePage === "workspace") return renderWorkspacePage();
+          if (activePage === "onboarding") return renderOnboardingPage();
+          if (activePage === "capability") return renderCapabilityPage();
+          if (activePage === "governance") return renderGovernancePage();
+          if (activePage === "logs") return renderLogsPage();
+          return renderValuePage();
+        }
+
+        return h(ConfigProvider, {
+          theme: {
+            algorithm: theme.defaultAlgorithm,
+            token: {
+              colorPrimary: "#1677ff",
+              borderRadius: 8,
+              fontSize: 14
+            }
+          }
+        },
+          h("div", { className: "shell" },
+            h("aside", { className: "sidebar" },
+              h("div", { className: "brand" },
+                h("div", { className: "brand-mark" }, "AI"),
+                h("div", null,
+                  h("div", { className: "brand-name" }, "造数平台"),
+                  h("div", { className: "brand-sub" }, "Role View Console")
+                )
+              ),
+              h("div", { className: "nav-group" },
+                h("div", { className: "nav-caption" }, "视角"),
+                navItems.map((item) =>
+                  h("div", {
+                    key: item.key,
+                    className: `nav-item ${activePage === item.key ? "active" : ""}`,
+                    onClick: () => setActivePage(item.key)
+                  },
+                    h("div", { className: "nav-icon" }, item.icon),
+                    h("div", null,
+                      h("div", { className: "nav-title" }, item.label),
+                      h("div", { className: "nav-desc" }, `${item.role} · ${item.subtitle}`)
+                    )
+                  )
+                )
+              )
+            ),
+            h("main", { className: "main" },
+              h("header", { className: "topbar" },
+                h("div", null,
+                  h("h1", { className: "page-title" }, activeMeta.label),
+                  h("div", { className: "page-subtitle" }, `${activeMeta.role} 视角 · ${activeMeta.subtitle}`)
+                ),
+                h(Space, { wrap: true },
+                  h(Tag, { color: statusInfo?.ok ? "success" : "default" }, statusInfo?.ok ? "服务正常" : "原型数据"),
+                  h(Tag, { color: "blue" }, `${scenarioList.length} 场景`),
+                  h(Button, { onClick: refreshAll, loading }, "刷新"),
+                  h(Button, { type: activePage === "onboarding" ? "primary" : "default", onClick: () => setActivePage("onboarding") }, "接入系统"),
+                  h(Button, { type: activePage === "workspace" ? "primary" : "default", onClick: () => setActivePage("workspace") }, "开始造数")
+                )
+              ),
+              renderActivePage()
+            )
+          )
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(h(App));
+    </script>
+  </body>
+</html>
