@@ -252,6 +252,50 @@ export interface CreateScenarioRunInput {
 
 export interface RetryStepResult { run: ScenarioRunDetail; attempt: StepAttempt }
 
+export interface ManagementRunCounts {
+  succeeded?: number
+  failed?: number
+  running?: number
+}
+
+export interface ManagementRisk {
+  id: Identifier
+  level: 'high' | 'medium' | 'low' | string
+  title: string
+  description?: string
+  systemId?: Identifier
+  systemName?: string
+}
+
+export interface ManagementSystemOverview {
+  systemId: Identifier
+  code: string
+  name: string
+  myRole?: SystemRole
+  apiAssetCount?: number
+  p0CandidateCount?: number
+  scenarioCount?: number
+  runs24h?: ManagementRunCounts
+  riskCount?: number
+  risks?: ManagementRisk[]
+  partial?: boolean
+  unavailableMetrics?: string[]
+}
+
+export interface ManagementOverview {
+  accessScope: 'platform' | 'platform_admin' | 'authorized'
+  systemCount?: number
+  apiAssetCount?: number
+  p0CandidateCount?: number
+  scenarioCount?: number
+  runs24h?: ManagementRunCounts
+  risks?: ManagementRisk[]
+  systems: ManagementSystemOverview[]
+  partial?: boolean
+  unavailableMetrics?: string[]
+  generatedAt?: IsoDateTime
+}
+
 export interface ApiEnvelope<T> {
   data: T
   meta?: Record<string, unknown>

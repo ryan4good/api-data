@@ -12,8 +12,10 @@ import (
 	"bizdevops/apps/api/internal/modules/catalog"
 	"bizdevops/apps/api/internal/modules/connector"
 	"bizdevops/apps/api/internal/modules/discovery"
+	"bizdevops/apps/api/internal/modules/environment"
 	"bizdevops/apps/api/internal/modules/execution"
 	"bizdevops/apps/api/internal/modules/importer"
+	"bizdevops/apps/api/internal/modules/management"
 	"bizdevops/apps/api/internal/modules/runrecord"
 	"bizdevops/apps/api/internal/modules/scanner"
 	"bizdevops/apps/api/internal/modules/scenario"
@@ -21,14 +23,17 @@ import (
 )
 
 type Dependencies struct {
-	Systems     system.Repository
-	Scans       scanner.Repository
-	Imports     importer.Repository
-	Discoveries discovery.Repository
-	Scenarios   scenario.Repository
-	Executions  execution.Repository
-	Steps       execution.StepProvider
-	Executor    execution.StepExecutor
+	Systems         system.Repository
+	Scans           scanner.Repository
+	Imports         importer.Repository
+	Management      management.Repository
+	Discoveries     discovery.Repository
+	Scenarios       scenario.Repository
+	Executions      execution.Repository
+	AsyncExecutions execution.AsyncRepository
+	Environments    environment.Repository
+	Steps           execution.StepProvider
+	Executor        execution.StepExecutor
 }
 
 type emptyStepProvider struct{}
@@ -49,8 +54,10 @@ type statusResponse struct {
 func New(cfg config.Config, logger *slog.Logger) http.Handler {
 	return NewWithDependencies(cfg, logger, Dependencies{
 		Systems: system.NewMemoryRepository(nil, nil), Scans: scanner.NewMemoryRepository(), Imports: importer.NewMemoryRepository(),
+		Management:  management.NewMemoryRepository(nil, nil, nil),
 		Discoveries: discovery.NewMemoryRepository(), Executions: execution.NewMemoryRepository(),
-		Scenarios: scenario.NewMemoryRepository(nil),
+		Scenarios:    scenario.NewMemoryRepository(nil),
+		Environments: environment.NewMemoryRepository(),
 	})
 }
 
@@ -67,8 +74,10 @@ func NewWithRepositories(
 ) http.Handler {
 	return NewWithDependencies(cfg, logger, Dependencies{
 		Systems: systemRepository, Scans: scannerRepository, Imports: importRepository,
+		Management:  management.NewMemoryRepository(nil, nil, nil),
 		Discoveries: discovery.NewMemoryRepository(), Executions: execution.NewMemoryRepository(),
-		Scenarios: scenario.NewMemoryRepository(nil),
+		Scenarios:    scenario.NewMemoryRepository(nil),
+		Environments: environment.NewMemoryRepository(),
 	})
 }
 
@@ -122,10 +131,19 @@ func NewWithDependencies(cfg config.Config, logger *slog.Logger, dependencies De
 	scanner.Register(mux)
 	scanner.RegisterSystemRoutes(mux, scanner.NewService(dependencies.Scans, scanner.AnalyzerFunc(scanner.Analyze)), dependencies.Systems)
 	importer.RegisterSystemRoutes(mux, importer.NewService(dependencies.Imports, importer.ServiceOptions{}), dependencies.Systems)
+	management.Register(mux, dependencies.Management, logger)
 	discovery.RegisterSystemRoutes(mux, discovery.NewService(dependencies.Discoveries), dependencies.Systems)
 	scenario.RegisterSystemRoutes(mux, scenario.NewService(dependencies.Scenarios), dependencies.Systems)
 	executionService := execution.NewService(dependencies.Executions, dependencies.Steps, dependencies.Executor, execution.ServiceOptions{})
 	execution.RegisterSystemRoutes(mux, executionService, dependencies.Systems)
+	asyncRepository := dependencies.AsyncExecutions
+	if asyncRepository == nil {
+		asyncRepository, _ = dependencies.Executions.(execution.AsyncRepository)
+	}
+	if asyncRepository != nil {
+		execution.RegisterAsyncRoutes(mux, execution.NewQueueService(asyncRepository, dependencies.Steps, execution.QueueServiceOptions{}), dependencies.Systems)
+	}
+	environment.RegisterSystemRoutes(mux, dependencies.Environments, dependencies.Systems)
 	runrecord.RegisterSystemRoutes(mux, runrecord.NewQueryService(dependencies.Executions), dependencies.Systems)
 	catalog.Register(mux)
 	discovery.Register(mux)

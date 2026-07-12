@@ -116,6 +116,35 @@ button { border: 0; border-radius: 8px; padding: 11px 16px; background: #275df5;
 .assertion-list { display: grid; gap: 7px; margin: 15px 0; }
 .assertion-list > div { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; border: 1px solid #edf0f4; border-radius: 7px; padding: 10px 12px; font-size: 12px; }
 .assertion-list small { grid-column: 1 / -1; color: #7b8798; }
+.management-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.management-toolbar label { display: flex; align-items: center; gap: 9px; color: #647187; font-size: 12px; font-weight: 600; }
+.management-toolbar select { border: 1px solid #d8e0eb; border-radius: 7px; padding: 8px 10px; color: #29364a; background: #fff; }
+.scope-badge { border-radius: 999px; padding: 6px 10px; color: #315ed5; background: #edf3ff; font-size: 12px; font-weight: 700; }
+.partial-warning { margin-bottom: 16px; border: 1px solid #f0d79b; border-radius: 8px; padding: 10px 13px; color: #765511; background: #fff9e9; font-size: 12px; }
+.management-metrics { margin-bottom: 18px; }
+.management-run-summary, .management-section, .system-management-summary { margin-bottom: 18px; border: 1px solid #e2e7ef; border-radius: 12px; padding: 19px; background: #fff; box-shadow: 0 2px 8px #14213d0a; }
+.management-run-summary { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+.management-run-summary h2, .management-section h2, .system-management-summary h2 { margin: 0; font-size: 16px; }
+.management-run-summary strong { color: #40516d; font-size: 14px; }
+.management-section h2 { margin-bottom: 14px; }
+.management-system-list, .risk-list { display: grid; gap: 9px; }
+.management-system-list article { display: grid; grid-template-columns: minmax(180px, 1.4fr) repeat(3, .55fr) 1.4fr auto; align-items: center; gap: 12px; border-top: 1px solid #edf0f4; padding: 12px 4px; font-size: 12px; }
+.management-system-list article:hover { background: #fafbfd; }
+.management-system-list strong, .management-system-list small { display: block; }
+.management-system-list small { margin-top: 3px; color: #8490a2; }
+.management-system-list span { color: #657287; }
+.management-system-list b { color: #315ed5; }
+.risk-list article { display: flex; align-items: flex-start; gap: 12px; border-top: 1px solid #edf0f4; padding-top: 11px; }
+.risk-list small, .risk-list p { display: block; margin: 4px 0 0; color: #7d899b; font-size: 12px; }
+.risk-level { border-radius: 5px; padding: 4px 7px; color: #6f4c16; background: #fff3d9; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.risk-level.high { color: #a0342c; background: #fff0ef; }
+.management-empty { padding: 22px; color: #7c899c; background: #f8fafc; text-align: center; }
+.system-management-summary > header { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 14px; }
+.system-management-summary header small { display: block; margin-top: 4px; color: #8490a2; }
+.system-summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.system-summary-grid span { display: grid; gap: 5px; border-radius: 8px; padding: 11px; color: #768397; background: #f7f9fc; font-size: 11px; }
+.system-summary-grid strong { color: #263349; font-size: 18px; }
+.system-management-summary > p { margin: 13px 0 0; color: #677489; font-size: 12px; }
 .not-found { display: grid; place-content: center; min-height: 100vh; text-align: center; }
 .not-found strong { color: #275df5; font-size: 72px; }
 .not-found h1 { margin: 4px 0 20px; }

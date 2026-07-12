@@ -8,6 +8,14 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class SystemIsolationContractTest(unittest.TestCase):
+    def test_environment_secret_migration_stores_references_only(self) -> None:
+        migration = (ROOT / "db/migrations/000002_environment_secrets.up.sql").read_text(encoding="utf-8").lower()
+        self.assertIn("create table environment_secrets", migration)
+        self.assertIn("variable_key", migration)
+        self.assertIn("secret_ref", migration)
+        self.assertNotIn("secret_value", migration)
+        self.assertIn("foreign key (system_id, environment_id)", migration)
+
     def test_member_role_enum_is_the_platform_contract(self) -> None:
         migration = (ROOT / "db/migrations/000001_initial.up.sql").read_text(encoding="utf-8")
         body = re.search(
@@ -48,7 +56,7 @@ class SystemIsolationContractTest(unittest.TestCase):
 
     def test_ci_runner_exercises_up_seed_scope_and_down(self) -> None:
         runner = (ROOT / "db/tests/run_mysql_integration.py").read_text(encoding="utf-8")
-        for marker in ("000001_initial.up.sql", "000001_development.sql", "business_systems.scoped.sql", "000001_initial.down.sql"):
+        for marker in ('glob("*.up.sql")', "000001_development.sql", "business_systems.scoped.sql", 'glob("*.down.sql")'):
             self.assertIn(marker, runner)
 
     def test_runner_supports_secret_safe_environment_connection(self) -> None:

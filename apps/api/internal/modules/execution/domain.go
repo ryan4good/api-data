@@ -7,10 +7,12 @@ import (
 )
 
 const (
-	RunStatusQueued  = "queued"
-	RunStatusRunning = "running"
-	RunStatusPassed  = "passed"
-	RunStatusFailed  = "failed"
+	RunStatusQueued    = "queued"
+	RunStatusRunning   = "running"
+	RunStatusPassed    = "passed"
+	RunStatusFailed    = "failed"
+	RunStatusCancelled = "cancelled"
+	RunStatusTimedOut  = "timed_out"
 
 	OutcomeSucceeded = "succeeded"
 	OutcomePartial   = "partial"
@@ -31,6 +33,8 @@ var (
 	ErrStepNotExecuted       = errors.New("scenario step has not been executed")
 	ErrInvalidCommand        = errors.New("invalid execution command")
 	ErrExecutorNotConfigured = errors.New("step executor is not configured")
+	ErrRunNotCancellable     = errors.New("scenario run cannot be cancelled")
+	ErrLeaseLost             = errors.New("scenario run lease was lost")
 )
 
 type Step struct {
@@ -80,10 +84,14 @@ type StepAttempt struct {
 }
 
 type RunSummary struct {
-	TotalSteps      int    `json:"totalSteps"`
-	ExecutedSteps   int    `json:"executedSteps"`
-	FailedStepID    string `json:"failedStepId,omitempty"`
-	StopAfterStepID string `json:"stopAfterStepId,omitempty"`
+	TotalSteps         int        `json:"totalSteps"`
+	ExecutedSteps      int        `json:"executedSteps"`
+	FailedStepID       string     `json:"failedStepId,omitempty"`
+	StopAfterStepID    string     `json:"stopAfterStepId,omitempty"`
+	RetryKey           string     `json:"retryKey,omitempty"`
+	LeaseOwner         string     `json:"leaseOwner,omitempty"`
+	LeaseExpiresAt     *time.Time `json:"leaseExpiresAt,omitempty"`
+	ExecutionTimeoutMS int64      `json:"executionTimeoutMs,omitempty"`
 }
 
 type Run struct {
@@ -141,4 +149,13 @@ type Repository interface {
 	UpdateRun(context.Context, Run) error
 	GetRun(context.Context, string, string) (Run, error)
 	ListRuns(context.Context, string) ([]Run, error)
+}
+
+type AsyncRepository interface {
+	Repository
+	EnqueueRun(context.Context, Run) (Run, bool, error)
+	LeaseNext(context.Context, string, string, time.Time, time.Duration) (Run, bool, error)
+	Heartbeat(context.Context, string, string, string, time.Time) error
+	CancelRun(context.Context, string, string, time.Time) (Run, error)
+	RequeueExpired(context.Context, string, time.Time) (int64, error)
 }

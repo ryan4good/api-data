@@ -34,6 +34,11 @@
 | connector-http-executor | 受控 HTTP 步骤执行器 | completed | `connector-http-executor.md` | 环境/secret resolver 与 worker |
 | frontend-discovery-runs | 场景发现、核验、执行与运行详情页面 | completed | `frontend-discovery-runs.md` | 分页、实时日志与审计 |
 | root-end-to-end-scenario | 发布到真实 HTTP 执行的完整 E2E | completed | `root-end-to-end-scenario.md` | 异步 worker 与管理总览 |
+| execution-async-worker | 队列、租约、取消、超时与幂等重试 | completed | `execution-async-worker.md` | 部署 Worker 与审计事件 |
+| environment-secret-resolver | 环境变量与密钥安全绑定 | completed | `environment-secret-resolver.md` | 接入真实 SecretProvider |
+| frontend-management-overview | 多业务系统管理总览 | completed | `frontend-management-overview.md` | 趋势、分页与审计入口 |
+| backend-management-overview | 管理总览聚合 API 与权限 | completed | `backend-management-overview.md` | 指标缓存与 platform auditor |
+| root-operations-integration | Worker、环境密钥与管理总览集成 | completed | `root-operations-integration.md` | SecretProvider、审计与部署 |
 
 ## 下一批可接力 Session
 

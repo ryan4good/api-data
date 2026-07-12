@@ -8,6 +8,7 @@ import { systemPath } from '../navigation'
 import type { SystemContextState } from '../layouts/SystemLayout'
 import { WorkflowMutationPanel } from './workflow-mutations'
 import type { CreateScanInput, RunScanInput, UploadScenarioImportInput } from '../api/types'
+import { SystemManagementOverview } from './management'
 
 const roleLabels: Record<SystemRole, string> = {
   owner: '所有者',
@@ -290,15 +291,18 @@ export function SystemOverviewPage() {
 
   const visibleImports = resources.imports.status === 'ready' ? resources.imports.items : []
   const mutationPanel = state?.status === 'ready' ? (
-    <WorkflowMutationPanel
-      role={state.system.myRole}
-      imports={visibleImports}
-      onCreateScan={createScan}
-      onRunScan={runScan}
-      onUploadImport={uploadImport}
-      onConfirmScripts={confirmScripts}
-      onApplyImport={applyImport}
-    />
+    <>
+      <SystemManagementOverview systemId={state.system.id} />
+      <WorkflowMutationPanel
+        role={state.system.myRole}
+        imports={visibleImports}
+        onCreateScan={createScan}
+        onRunScan={runScan}
+        onUploadImport={uploadImport}
+        onConfirmScripts={confirmScripts}
+        onApplyImport={applyImport}
+      />
+    </>
   ) : undefined
 
   return <SystemWorkspaceView state={state ?? { status: 'loading' }} resources={resources} mutationPanel={mutationPanel} />

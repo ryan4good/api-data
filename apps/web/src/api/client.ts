@@ -1,4 +1,4 @@
-import type { ApiEnvelope, ApiErrorEnvelope, ApiOperation, BusinessSystem, CreateDiscoveryInput, CreateDiscoveryResult, CreateScanInput, CreateScenarioRunInput, DiscoveryCandidate, DiscoveryRecord, PromoteCandidateResult, RetryStepResult, ReviewCandidateInput, RunScanInput, RunScanResult, ScanRun, ScenarioDetail, ScenarioImport, ScenarioRunDetail, ScenarioSummary, UploadScenarioImportInput } from './types'
+import type { ApiEnvelope, ApiErrorEnvelope, ApiOperation, BusinessSystem, CreateDiscoveryInput, CreateDiscoveryResult, CreateScanInput, CreateScenarioRunInput, DiscoveryCandidate, DiscoveryRecord, ManagementOverview, ManagementSystemOverview, PromoteCandidateResult, RetryStepResult, ReviewCandidateInput, RunScanInput, RunScanResult, ScanRun, ScenarioDetail, ScenarioImport, ScenarioRunDetail, ScenarioSummary, UploadScenarioImportInput } from './types'
 
 export class ApiError extends Error {
   constructor(
@@ -72,6 +72,8 @@ export function createApiClient(options: ApiClientOptions = {}) {
     listScenarioRuns: (systemId: string) => request<ScenarioRunDetail[]>(`/systems/${encodeURIComponent(systemId)}/scenario-runs`),
     getScenarioRun: (systemId: string, runId: string) => request<ScenarioRunDetail>(`/systems/${encodeURIComponent(systemId)}/scenario-runs/${encodeURIComponent(runId)}`),
     retryScenarioStep: (systemId: string, runId: string, stepId: string) => request<RetryStepResult>(`/systems/${encodeURIComponent(systemId)}/scenario-runs/${encodeURIComponent(runId)}/steps/${encodeURIComponent(stepId)}/retry`, { method: 'POST' }),
+    getManagementOverview: () => request<ManagementOverview>('/management/overview'),
+    getManagementSystemOverview: (systemId: string) => request<ManagementSystemOverview>(`/management/systems/${encodeURIComponent(systemId)}/overview`),
     request,
   }
 }

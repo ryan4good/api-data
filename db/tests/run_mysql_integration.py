@@ -19,8 +19,8 @@ from collections.abc import Callable
 
 
 ROOT = Path(__file__).resolve().parents[2]
-UP = ROOT / "db/migrations/000001_initial.up.sql"
-DOWN = ROOT / "db/migrations/000001_initial.down.sql"
+UPS = sorted((ROOT / "db/migrations").glob("*.up.sql"))
+DOWNS = sorted((ROOT / "db/migrations").glob("*.down.sql"), reverse=True)
 SEED = ROOT / "db/seeds/000001_development.sql"
 SCOPED = ROOT / "db/queries/business_systems.scoped.sql"
 IMAGE = "mysql:8.0.36"
@@ -106,7 +106,8 @@ def assert_equal(actual: str, expected: str, message: str) -> None:
 
 
 def exercise_contracts(mysql: Callable[[str, bool], str], server_label: str) -> None:
-    mysql(UP.read_text(encoding="utf-8"), True)
+    for migration in UPS:
+        mysql(migration.read_text(encoding="utf-8"), True)
     mysql(SEED.read_text(encoding="utf-8"), True)
 
     list_query = named_query("ListAuthorizedBusinessSystems")
@@ -126,7 +127,8 @@ def exercise_contracts(mysql: Callable[[str, bool], str], server_label: str) -> 
     enum = mysql("SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'system_members' AND COLUMN_NAME = 'role';", True)
     assert_equal(enum, "enum('owner','maintainer','reviewer','runner','viewer')", "member roles")
 
-    mysql(DOWN.read_text(encoding="utf-8"), True)
+    for migration in DOWNS:
+        mysql(migration.read_text(encoding="utf-8"), True)
     assert_equal(mysql("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE();", True), "0", "down migration must remove all tables")
     print(f"PASS: {server_label} up, seed, scoped reads, role enum, and down")
 

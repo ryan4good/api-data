@@ -32,6 +32,7 @@ ALICE = "10000000-0000-4000-8000-000000000001"
 BOB = "10000000-0000-4000-8000-000000000002"
 VIEWER = "10000000-0000-4000-8000-000000000003"
 OUTSIDER = "10000000-0000-4000-8000-000000000004"
+ADMIN = "10000000-0000-4000-8000-000000000005"
 MEMBER_TARGET = "40000000-0000-4000-8000-000000000005"
 OMS = "20000000-0000-4000-8000-000000000001"
 WMS = "20000000-0000-4000-8000-000000000002"
@@ -141,7 +142,8 @@ class SystemAPIHarness:
         try:
             self._start_mock_api()
             mysql(f"DROP DATABASE IF EXISTS `{DATABASE}`; CREATE DATABASE `{DATABASE}` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;", self.password)
-            mysql((ROOT / "db/migrations/000001_initial.up.sql").read_text(encoding="utf-8"), self.password, database=True)
+            for migration in sorted((ROOT / "db/migrations").glob("*.up.sql")):
+                mysql(migration.read_text(encoding="utf-8"), self.password, database=True)
             mysql((ROOT / "db/seeds/000001_development.sql").read_text(encoding="utf-8"), self.password, database=True)
             request_config = json.dumps({
                 "baseURL": self.mock_base_url,
@@ -151,7 +153,8 @@ class SystemAPIHarness:
             }, separators=(",", ":"))
             mysql(
                 "INSERT INTO users (id, email, display_name, platform_role, status) "
-                f"VALUES ('{MEMBER_TARGET}', 'e2e.member@example.test', 'E2E Member', 'member', 'active');",
+                f"VALUES ('{MEMBER_TARGET}', 'e2e.member@example.test', 'E2E Member', 'member', 'active'),"
+                f"('{ADMIN}', 'e2e.admin@example.test', 'E2E Admin', 'admin', 'active');",
                 self.password,
                 database=True,
             )
@@ -315,6 +318,23 @@ class SystemAPIMySQLE2ETest(unittest.TestCase):
             self.assertEqual("runner", updated["role"])
             self.assertEqual("E2E Member", updated["displayName"])
 
+            secret_path = f"/api/v1/systems/{OMS}/environments/{ENVIRONMENT}/secret-references"
+            status, envelope = api_request(
+                harness.base_url,
+                secret_path,
+                ALICE,
+                body={"variableKey": "apiToken", "secretRef": "vault://oms/e2e/api-token"},
+            )
+            self.assertEqual(201, status)
+            self.assertEqual("vault://oms/e2e/api-token", envelope["data"]["secretRef"])
+
+            status, envelope = api_request(harness.base_url, secret_path, VIEWER)
+            self.assertEqual(200, status)
+            self.assertNotIn("secretRef", envelope["data"][0])
+            status, envelope = api_request(harness.base_url, secret_path, MEMBER_TARGET)
+            self.assertEqual(200, status)
+            self.assertEqual("vault://oms/e2e/api-token", envelope["data"][0]["secretRef"])
+
             for resource in ("scans", "api-operations", "scenario-imports"):
                 status, envelope = api_request(harness.base_url, f"/api/v1/systems/{OMS}/{resource}", ALICE)
                 self.assertEqual(200, status, resource)
@@ -425,6 +445,26 @@ class SystemAPIMySQLE2ETest(unittest.TestCase):
             self.assertEqual(1, len(envelope["data"]))
             self.assertEqual("passed", envelope["data"][0]["status"])
             self.assertEqual(1, len(envelope["data"][0]["attempts"]))
+
+            status, envelope = api_request(harness.base_url, "/api/v1/management/overview", ALICE)
+            self.assertEqual(200, status)
+            self.assertEqual("authorized", envelope["data"]["accessScope"])
+            self.assertEqual(1, envelope["data"]["systemCount"])
+            self.assertEqual(3, envelope["data"]["apiAssetCount"])
+            self.assertGreaterEqual(envelope["data"]["scenarioCount"], 2)
+            self.assertEqual(1, envelope["data"]["runs24h"]["succeeded"])
+
+            status, envelope = api_request(harness.base_url, "/api/v1/management/overview", OUTSIDER)
+            self.assertEqual(200, status)
+            self.assertEqual(0, envelope["data"]["systemCount"])
+            self.assertEqual([], envelope["data"]["systems"])
+            status, envelope = api_request(harness.base_url, "/api/v1/management/overview", ADMIN)
+            self.assertEqual(200, status)
+            self.assertEqual("platform_admin", envelope["data"]["accessScope"])
+            self.assertEqual(2, envelope["data"]["systemCount"])
+            status, envelope = api_request(harness.base_url, f"/api/v1/management/systems/{WMS}/overview", ALICE)
+            self.assertEqual(404, status)
+            self.assertEqual("system_not_found", envelope["error"]["code"])
 
 
 if __name__ == "__main__":

@@ -138,4 +138,15 @@ describe('API client', () => {
       ['/api/v1/systems/system-a/scenario-runs/run-1/steps/step-2/retry', 'POST', undefined],
     ])
   })
+
+  it('reads backend-authorized management overview projections', async () => {
+    const transport = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ data: {} }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    const client = createApiClient({ baseUrl: '/api/v1', transport })
+    await client.getManagementOverview()
+    await client.getManagementSystemOverview('system / A')
+    expect(transport.mock.calls.map(([url]) => url)).toEqual([
+      '/api/v1/management/overview',
+      '/api/v1/management/systems/system%20%2F%20A/overview',
+    ])
+  })
 })

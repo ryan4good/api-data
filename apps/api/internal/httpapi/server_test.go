@@ -12,8 +12,10 @@ import (
 	"bizdevops/apps/api/internal/config"
 	"bizdevops/apps/api/internal/modules/access"
 	"bizdevops/apps/api/internal/modules/discovery"
+	"bizdevops/apps/api/internal/modules/environment"
 	"bizdevops/apps/api/internal/modules/execution"
 	"bizdevops/apps/api/internal/modules/importer"
+	"bizdevops/apps/api/internal/modules/management"
 	"bizdevops/apps/api/internal/modules/scanner"
 	"bizdevops/apps/api/internal/modules/scenario"
 	"bizdevops/apps/api/internal/modules/system"
@@ -31,12 +33,15 @@ func TestSystemWorkflowRoutesAreRegisteredWithInjectedRepositories(t *testing.T)
 		config.Config{ServiceName: "test-api", Environment: "test", Auth: config.Auth{Mode: "development"}},
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		Dependencies{
-			Systems:     systems,
-			Scans:       scanner.NewMemoryRepository(),
-			Imports:     importer.NewMemoryRepository(),
-			Discoveries: discovery.NewMemoryRepository(),
-			Scenarios:   scenario.NewMemoryRepository(nil),
-			Executions:  execution.NewMemoryRepository(),
+			Systems:         systems,
+			Scans:           scanner.NewMemoryRepository(),
+			Imports:         importer.NewMemoryRepository(),
+			Management:      management.NewMemoryRepository(nil, nil, nil),
+			Discoveries:     discovery.NewMemoryRepository(),
+			Scenarios:       scenario.NewMemoryRepository(nil),
+			Executions:      execution.NewMemoryRepository(),
+			AsyncExecutions: execution.NewMemoryRepository(),
+			Environments:    environment.NewMemoryRepository(),
 		},
 	)
 
@@ -47,6 +52,8 @@ func TestSystemWorkflowRoutesAreRegisteredWithInjectedRepositories(t *testing.T)
 		"/api/v1/systems/" + systemID + "/discoveries",
 		"/api/v1/systems/" + systemID + "/scenarios",
 		"/api/v1/systems/" + systemID + "/scenario-runs",
+		"/api/v1/management/overview",
+		"/api/v1/systems/" + systemID + "/environments",
 	} {
 		recorder := httptest.NewRecorder()
 		request := httptest.NewRequest(http.MethodGet, path, nil)
@@ -55,6 +62,13 @@ func TestSystemWorkflowRoutesAreRegisteredWithInjectedRepositories(t *testing.T)
 		if recorder.Code != http.StatusOK {
 			t.Fatalf("GET %s status=%d body=%s", path, recorder.Code, recorder.Body.String())
 		}
+	}
+	asyncRecorder := httptest.NewRecorder()
+	asyncRequest := httptest.NewRequest(http.MethodGet, "/api/v1/systems/"+systemID+"/scenario-run-jobs", nil)
+	asyncRequest.Header.Set(access.DevelopmentUserHeader, userID)
+	handler.ServeHTTP(asyncRecorder, asyncRequest)
+	if asyncRecorder.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("async route status=%d body=%s", asyncRecorder.Code, asyncRecorder.Body.String())
 	}
 }
 

@@ -14,8 +14,10 @@ import (
 	"bizdevops/apps/api/internal/httpapi"
 	"bizdevops/apps/api/internal/modules/connector"
 	"bizdevops/apps/api/internal/modules/discovery"
+	"bizdevops/apps/api/internal/modules/environment"
 	"bizdevops/apps/api/internal/modules/execution"
 	"bizdevops/apps/api/internal/modules/importer"
+	"bizdevops/apps/api/internal/modules/management"
 	"bizdevops/apps/api/internal/modules/scanner"
 	"bizdevops/apps/api/internal/modules/scenario"
 	"bizdevops/apps/api/internal/modules/system"
@@ -24,12 +26,14 @@ import (
 )
 
 type workflowDependencies struct {
-	scans       scanner.Repository
-	imports     importer.Repository
-	discoveries discovery.Repository
-	scenarios   scenario.Repository
-	executions  execution.Repository
-	steps       execution.StepProvider
+	scans        scanner.Repository
+	imports      importer.Repository
+	management   management.Repository
+	environments environment.Repository
+	discoveries  discovery.Repository
+	scenarios    scenario.Repository
+	executions   execution.Repository
+	steps        execution.StepProvider
 }
 
 var openSystemMySQL = func(ctx context.Context, dsn string, pool system.MySQLPoolConfig) (system.Repository, func() error, error) {
@@ -54,7 +58,9 @@ var openWorkflowMySQL = func(ctx context.Context, dsn string, pool system.MySQLP
 	}
 	return workflowDependencies{
 		scans: scanner.NewMySQLRepository(db), imports: importer.NewMySQLRepository(db),
-		discoveries: discovery.NewMySQLRepository(db), executions: execution.NewMySQLRepository(db),
+		management:   management.NewMySQLRepository(db),
+		environments: environment.NewMySQLRepository(db),
+		discoveries:  discovery.NewMySQLRepository(db), executions: execution.NewMySQLRepository(db),
 		scenarios: scenario.NewMySQLRepository(db),
 		steps:     execution.NewMySQLStepProvider(db),
 	}, db.Close, nil
@@ -102,7 +108,7 @@ func main() {
 	server := &http.Server{
 		Addr: cfg.HTTP.Address,
 		Handler: httpapi.NewWithDependencies(cfg, logger, httpapi.Dependencies{
-			Systems: repository, Scans: workflows.scans, Imports: workflows.imports,
+			Systems: repository, Scans: workflows.scans, Imports: workflows.imports, Management: workflows.management, Environments: workflows.environments,
 			Discoveries: workflows.discoveries, Scenarios: workflows.scenarios, Executions: workflows.executions, Steps: workflows.steps, Executor: executor,
 		}),
 		ReadHeaderTimeout: cfg.HTTP.ReadHeaderTimeout,
@@ -136,7 +142,9 @@ func selectWorkflowRepositories(ctx context.Context, cfg config.MySQL) (workflow
 	if cfg.DSN == "" {
 		return workflowDependencies{
 			scans: scanner.NewMemoryRepository(), imports: importer.NewMemoryRepository(),
-			discoveries: discovery.NewMemoryRepository(), executions: execution.NewMemoryRepository(),
+			management:   management.NewMemoryRepository(nil, nil, nil),
+			environments: environment.NewMemoryRepository(),
+			discoveries:  discovery.NewMemoryRepository(), executions: execution.NewMemoryRepository(),
 			scenarios: scenario.NewMemoryRepository(nil),
 		}, func() error { return nil }, nil
 	}

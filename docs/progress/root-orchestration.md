@@ -76,6 +76,14 @@
 - Server 仅在显式配置 allowed hosts 时启用 HTTP executor；默认仍安全禁用。
 - 真实 MySQL E2E 使用临时本地业务 API，完整验证“代码资产 → P0 → accept → promote → HTTP step → assertion → passed run”。
 
+### 第七轮运营能力 Green
+
+- 异步 Worker 支持 queue、lease、heartbeat、过期重排、取消、超时与 retry key，并提供独立可运行命令。
+- Environment/Secret Resolver 只保存外部 reference，新增 `000002_environment_secrets` migration，真实数据库隔离通过。
+- 管理总览由后端按成员授权或 platform admin 范围聚合，React 不跨系统自行汇总。
+- 真实 E2E 覆盖 secret reference 角色可见性、member/outsider/admin 管理范围。
+- 浏览器验证管理 Dashboard、系统筛选和单系统摘要，无 console warning/error。
+
 ## 下一接力点
 
 - 将扫描器接入 system-scoped API 和 MySQL，形成扫描任务、API Operation 与版本差异。

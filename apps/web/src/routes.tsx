@@ -1,7 +1,8 @@
 import { Navigate, type RouteObject } from 'react-router-dom'
 import { GlobalLayout } from './layouts/GlobalLayout'
 import { SystemLayout } from './layouts/SystemLayout'
-import { DashboardPage, SystemsPage, GlobalRunDetailPage, GlobalRunsPage, GlobalSettingsPage } from './pages/global'
+import { SystemsPage, GlobalRunDetailPage, GlobalRunsPage, GlobalSettingsPage } from './pages/global'
+import { ManagementDashboardPage } from './pages/management'
 import {
   ApiAssetsPage,
   EditorPage,
@@ -19,7 +20,7 @@ export const routes: RouteObject[] = [
     element: <GlobalLayout />,
     children: [
       { index: true, element: <Navigate to="/dashboard" replace /> },
-      { path: 'dashboard', element: <DashboardPage /> },
+      { path: 'dashboard', element: <ManagementDashboardPage /> },
       { path: 'systems', element: <SystemsPage /> },
       { path: 'runs', element: <GlobalRunsPage /> },
       { path: 'runs/:runId', element: <GlobalRunDetailPage /> },

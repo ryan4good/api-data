@@ -12,6 +12,9 @@ const selectAttemptSQL = `SELECT id, system_id, scenario_run_id, scenario_step_i
 const selectAssertionSQL = `SELECT id, assertion_key, assertion_type, status, expected_value, actual_value, message, duration_ms FROM scenario_assertion_results`
 const insertStepAttemptSQL = `INSERT INTO scenario_step_runs (id, system_id, scenario_run_id, scenario_step_id, attempt_no, position, status, request_snapshot, response_snapshot, extracted_variables, error_message, duration_ms, started_at, finished_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 const insertAssertionSQL = `INSERT INTO scenario_assertion_results (id, system_id, step_run_id, assertion_key, assertion_type, status, expected_value, actual_value, message, duration_ms, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+const selectLeaseCandidateSQL = `SELECT id FROM scenario_runs WHERE system_id = ? AND status = ? ORDER BY created_at, id LIMIT 1 FOR UPDATE SKIP LOCKED`
+const updateLeaseSQL = `UPDATE scenario_runs SET status = ?, summary = ? WHERE system_id = ? AND id = ? AND status = ?`
+const heartbeatLeaseSQL = `UPDATE scenario_runs SET summary = JSON_SET(summary, '$.summary.leaseExpiresAt', ?) WHERE system_id = ? AND id = ? AND status = ? AND JSON_UNQUOTE(JSON_EXTRACT(summary, '$.summary.leaseOwner')) = ?`
 
 type MySQLRepository struct{ db *sql.DB }
 
