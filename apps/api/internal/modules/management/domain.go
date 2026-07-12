@@ -1,5 +1,7 @@
 package management
 
+import "time"
+
 type Scope string
 
 const (
@@ -23,16 +25,20 @@ type Risk struct {
 }
 
 type SystemOverview struct {
-	SystemID       string    `json:"systemId"`
-	SystemKey      string    `json:"code"`
-	SystemName     string    `json:"name"`
-	MyRole         string    `json:"myRole"`
-	APICount       int       `json:"apiAssetCount"`
-	P0PendingCount int       `json:"p0CandidateCount"`
-	ScenarioCount  int       `json:"scenarioCount"`
-	Runs24h        RunCounts `json:"runs24h"`
-	RiskCount      int       `json:"riskCount"`
-	Risks          []Risk    `json:"risks"`
+	SystemID         string     `json:"systemId"`
+	SystemKey        string     `json:"code"`
+	SystemName       string     `json:"name"`
+	MyRole           string     `json:"myRole"`
+	APICount         int        `json:"apiAssetCount"`
+	P0PendingCount   int        `json:"p0CandidateCount"`
+	ScenarioCount    int        `json:"scenarioCount"`
+	Runs24h          RunCounts  `json:"runs24h"`
+	MemberCount      int        `json:"memberCount"`
+	EnvironmentCount int        `json:"environmentCount"`
+	CodeSourceCount  int        `json:"codeSourceCount"`
+	LastRunAt        *time.Time `json:"lastRunAt"`
+	RiskCount        int        `json:"riskCount"`
+	Risks            []Risk     `json:"risks"`
 }
 
 type Overview struct {

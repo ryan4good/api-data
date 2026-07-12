@@ -15,7 +15,11 @@ const metricSelectSQL = `SELECT bs.id, bs.system_key, bs.name, %s,
  (SELECT COUNT(*) FROM scenarios s WHERE s.system_id = bs.id AND s.status <> 'archived') AS scenario_count,
  (SELECT COUNT(*) FROM scenario_runs sr WHERE sr.system_id = bs.id AND sr.status = 'passed' AND sr.created_at >= UTC_TIMESTAMP(3) - INTERVAL 1 DAY) AS runs_passed,
  (SELECT COUNT(*) FROM scenario_runs sr WHERE sr.system_id = bs.id AND sr.status IN ('failed','timed_out') AND sr.created_at >= UTC_TIMESTAMP(3) - INTERVAL 1 DAY) AS runs_failed,
- (SELECT COUNT(*) FROM scenario_runs sr WHERE sr.system_id = bs.id AND sr.status IN ('queued','running') AND sr.created_at >= UTC_TIMESTAMP(3) - INTERVAL 1 DAY) AS runs_running
+ (SELECT COUNT(*) FROM scenario_runs sr WHERE sr.system_id = bs.id AND sr.status IN ('queued','running') AND sr.created_at >= UTC_TIMESTAMP(3) - INTERVAL 1 DAY) AS runs_running,
+ (SELECT COUNT(*) FROM system_members member WHERE member.system_id = bs.id) AS member_count,
+ (SELECT COUNT(*) FROM environments environment WHERE environment.system_id = bs.id AND environment.status = 'active') AS environment_count,
+ (SELECT COUNT(*) FROM code_sources source WHERE source.system_id = bs.id AND source.status = 'active') AS code_source_count,
+ (SELECT MAX(sr.created_at) FROM scenario_runs sr WHERE sr.system_id = bs.id) AS last_run_at
 FROM business_systems bs %s WHERE bs.status = 'active' %s`
 
 var (
@@ -88,7 +92,7 @@ type overviewScanner interface{ Scan(...any) error }
 
 func scanSystemOverview(row overviewScanner) (SystemOverview, error) {
 	var item SystemOverview
-	err := row.Scan(&item.SystemID, &item.SystemKey, &item.SystemName, &item.MyRole, &item.APICount, &item.P0PendingCount, &item.ScenarioCount, &item.Runs24h.Passed, &item.Runs24h.Failed, &item.Runs24h.Running)
+	err := row.Scan(&item.SystemID, &item.SystemKey, &item.SystemName, &item.MyRole, &item.APICount, &item.P0PendingCount, &item.ScenarioCount, &item.Runs24h.Passed, &item.Runs24h.Failed, &item.Runs24h.Running, &item.MemberCount, &item.EnvironmentCount, &item.CodeSourceCount, &item.LastRunAt)
 	if err == nil {
 		item.Risks = buildOverview(ScopeMember, []SystemOverview{item}).Systems[0].Risks
 	}

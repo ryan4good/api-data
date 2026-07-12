@@ -24,6 +24,7 @@
 - 最近已推送提交：
   - `1377d8e feat: deploy BizDevOps Tencent trial`
   - `2a07418 fix: preserve trial identity in production build`
+  - `38e6f0f feat: add secure JWT login flow`
 
 本轮正式认证变更包括：
 
@@ -35,6 +36,8 @@
 - Web：只使用 HttpOnly Cookie，不将 token 写入 localStorage/sessionStorage，也不主动发送 Bearer。
 - 部署：JWT/Cookie env 模板、Nginx 登录限流、TLS 切换与回滚约束。
 - 集成修复：过期/轮换前 Cookie 不再阻止重新登录或退出清 Cookie。
+- 单系统概览：场景和运行卡片已接真实 scoped API，不再硬编码空状态。
+- 管理摘要：新增成员、环境、代码源和最近运行指标；缺失值保持未知而非伪造 0。
 
 敏感文件 `docs/tencent.txt` 已由 `.gitignore` 精确忽略。绝不能输出内容、暂存或提交。所有 shell 命令仍必须按 `C:\Users\ryanf\.codex\RTK.md` 以 `rtk` 开头。
 
@@ -83,7 +86,7 @@ Nginx Basic Auth 与 Bearer JWT 都使用 `Authorization` Header。浏览器无�
 
 - API：`go test -count=1 ./...` 通过。
 - API：`go vet ./...` 通过。
-- Web：13 个测试文件、53 项测试通过。
+- Web：13 个测试文件、55 项测试通过。
 - Web：`VITE_BASE_PATH=/bizdevops/` 且不设置 `VITE_DEV_USER_ID` 的生产构建通过。
 - Python DB/部署静态契约：21 项通过。
 - 部署契约覆盖 JWT 必需配置、安全 Cookie、禁止 Web Storage token、登录限流、TLS 门禁和回滚。
@@ -102,6 +105,15 @@ Nginx Basic Auth 与 Bearer JWT 都使用 `Authorization` Header。浏览器无�
 - logout 后 `/auth/me` 返回 401。
 
 staging unit、env、Cookie jar、临时 release 已清理，测试用户原 password hash 已恢复，公网 `18080` 服务未改变。
+
+### 远端真实系统概览 staging
+
+新 Linux amd64 API 还在 `127.0.0.1:18082` 做过一次性真实 MariaDB 验收：
+
+- 系统摘要返回 `memberCount/environmentCount/codeSourceCount/lastRunAt`。
+- 计数字段为数字；无运行时 `lastRunAt` 明确为 null。
+- 场景列表和运行列表 scoped endpoint 均返回数组 envelope。
+- staging unit、env 和 release 已清理，公网服务未切换。
 
 ### 当前线上回归
 
@@ -155,6 +167,7 @@ staging unit、env、Cookie jar、临时 release 已清理，测试用户原 pas
 
 - `docs/progress/tencent-trial-deployment.md`
 - `docs/progress/authentication-jwt-login.md`
+- `docs/progress/system-overview-real-data.md`
 - `docs/progress/root-end-to-end-scenario.md`
 - `docs/progress/root-operations-integration.md`
 - `deploy/tencent/README.md`

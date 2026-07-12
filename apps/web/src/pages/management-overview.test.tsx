@@ -7,6 +7,7 @@ import { ManagementOverviewView, SystemManagementOverviewView } from './manageme
 const oms: ManagementSystemOverview = {
   systemId: 'system-oms', code: 'oms', name: '订单中心', myRole: 'owner', apiAssetCount: 30,
   p0CandidateCount: 4, scenarioCount: 12, runs24h: { succeeded: 18, failed: 2, running: 1 }, riskCount: 1,
+  memberCount: 8, environmentCount: 3, codeSourceCount: 2, lastRunAt: '2026-07-12T10:30:00Z',
 }
 const wms: ManagementSystemOverview = {
   systemId: 'system-wms', code: 'wms', name: '库存中心', myRole: 'reviewer', apiAssetCount: 40,
@@ -57,6 +58,30 @@ describe('management overview', () => {
     const html = render(<SystemManagementOverviewView state={{ status: 'ready', overview: oms }} />)
     expect(html).toContain('订单中心管理摘要')
     expect(html).toContain('API 资产')
+    expect(html).toContain('成员<strong>8</strong>')
+    expect(html).toContain('环境<strong>3</strong>')
+    expect(html).toContain('代码源<strong>2</strong>')
+    expect(html).toContain('最近运行')
+    expect(html).toContain(new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date('2026-07-12T10:30:00Z')))
     expect(html).toContain('/systems/system-oms/runs')
+  })
+
+  it('keeps unavailable system health metrics unknown in a partial projection', () => {
+    const partial: ManagementSystemOverview = {
+      ...oms,
+      memberCount: undefined,
+      environmentCount: undefined,
+      codeSourceCount: undefined,
+      lastRunAt: null,
+      partial: true,
+      unavailableMetrics: ['memberCount', 'environmentCount', 'codeSourceCount', 'lastRunAt'],
+    }
+    const html = render(<SystemManagementOverviewView state={{ status: 'ready', overview: partial }} />)
+    expect(html).toContain('部分指标暂不可用')
+    expect(html).toContain('成员<strong>—</strong>')
+    expect(html).toContain('环境<strong>—</strong>')
+    expect(html).toContain('代码源<strong>—</strong>')
+    expect(html).toContain('最近运行<strong>—</strong>')
+    expect(html).not.toContain('成员<strong>0</strong>')
   })
 })

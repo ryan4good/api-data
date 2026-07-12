@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"bizdevops/apps/api/internal/modules/access"
 )
@@ -20,8 +21,9 @@ const (
 )
 
 func managementFixtures() []SystemOverview {
+	lastRunAt := time.Date(2026, time.July, 12, 3, 30, 0, 0, time.UTC)
 	return []SystemOverview{
-		{SystemID: managementSystemA, SystemKey: "oms", SystemName: "OMS", APICount: 12, P0PendingCount: 2, ScenarioCount: 4, Runs24h: RunCounts{Passed: 7, Failed: 1}},
+		{SystemID: managementSystemA, SystemKey: "oms", SystemName: "OMS", APICount: 12, P0PendingCount: 2, ScenarioCount: 4, Runs24h: RunCounts{Passed: 7, Failed: 1}, MemberCount: 5, EnvironmentCount: 3, CodeSourceCount: 2, LastRunAt: &lastRunAt},
 		{SystemID: managementSystemB, SystemKey: "wms", SystemName: "WMS", APICount: 8, ScenarioCount: 3, Runs24h: RunCounts{Running: 1}},
 	}
 }
@@ -41,6 +43,9 @@ func TestMemoryRepositoryScopesMembersAndLetsPlatformAdminSeeAll(t *testing.T) {
 	}
 	if admin.APICount != 20 || admin.Runs24h.Failed != 1 {
 		t.Fatalf("admin totals=%#v", admin)
+	}
+	if member.Systems[0].MemberCount != 5 || member.Systems[0].EnvironmentCount != 3 || member.Systems[0].CodeSourceCount != 2 || member.Systems[0].LastRunAt == nil {
+		t.Fatalf("member system metrics=%#v", member.Systems[0])
 	}
 	if _, found, err := repository.SystemOverview(context.Background(), managementUser, managementSystemB); err != nil || found {
 		t.Fatalf("cross-system detail found=%v err=%v", found, err)
@@ -66,6 +71,10 @@ func TestManagementHTTPRequiresIdentityAndHidesUnauthorizedSystems(t *testing.T)
 	if overviewData["accessScope"] != "authorized" || overviewData["apiAssetCount"] != float64(12) {
 		t.Fatalf("frontend management contract=%#v", overviewData)
 	}
+	systemData := overviewData["systems"].([]any)[0].(map[string]any)
+	if systemData["memberCount"] != float64(5) || systemData["environmentCount"] != float64(3) || systemData["codeSourceCount"] != float64(2) || systemData["lastRunAt"] != "2026-07-12T03:30:00Z" {
+		t.Fatalf("frontend system metrics contract=%#v", systemData)
+	}
 
 	unauthorized := httptest.NewRecorder()
 	handler.ServeHTTP(unauthorized, httptest.NewRequest(http.MethodGet, "/api/v1/management/overview", nil))
@@ -86,5 +95,19 @@ func TestManagementHTTPRequiresIdentityAndHidesUnauthorizedSystems(t *testing.T)
 	}
 	if envelope["error"].(map[string]any)["code"] != "system_not_found" {
 		t.Fatalf("envelope=%#v", envelope)
+	}
+}
+
+func TestSystemOverviewJSONUsesNullWhenThereHasNeverBeenARun(t *testing.T) {
+	payload, err := json.Marshal(managementFixtures()[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	var item map[string]any
+	if err := json.Unmarshal(payload, &item); err != nil {
+		t.Fatal(err)
+	}
+	if value, exists := item["lastRunAt"]; !exists || value != nil {
+		t.Fatalf("lastRunAt must be an explicit JSON null, item=%#v", item)
 	}
 }

@@ -14,6 +14,11 @@ function metric(value?: number): string { return typeof value === 'number' ? val
 function runText(runs?: ManagementSystemOverview['runs24h']): string {
   return `成功 ${metric(runs?.succeeded)} · 失败 ${metric(runs?.failed)} · 进行中 ${metric(runs?.running)}`
 }
+function dateTime(value?: string | null): string {
+  if (!value) return '—'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '—' : new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+}
 
 function Risks({ risks = [] }: { risks?: ManagementRisk[] }) {
   if (risks.length === 0) return <div className="management-empty">暂无后端返回的风险提示</div>
@@ -66,7 +71,7 @@ export function SystemManagementOverviewView({ state }: { state: ManagementState
   if (state.status === 'error') return <section className="system-management-summary error-state"><strong>{state.message}</strong></section>
   if (state.status === 'empty') return <section className="system-management-summary"><div className="muted">当前系统暂无管理聚合数据</div></section>
   const { overview } = state
-  return <section className="system-management-summary"><header><div><h2>{overview.name}管理摘要</h2><small>由系统级授权读模型返回</small></div><Link className="secondary-action" to={`/systems/${overview.systemId}/runs`}>查看运行记录</Link></header>{overview.partial && <div className="partial-warning">部分指标暂不可用</div>}<div className="system-summary-grid"><span>API 资产<strong>{metric(overview.apiAssetCount)}</strong></span><span>P0 候选<strong>{metric(overview.p0CandidateCount)}</strong></span><span>场景<strong>{metric(overview.scenarioCount)}</strong></span><span>风险<strong>{metric(overview.riskCount)}</strong></span></div><p>{runText(overview.runs24h)}</p></section>
+  return <section className="system-management-summary"><header><div><h2>{overview.name}管理摘要</h2><small>由系统级授权读模型返回</small></div><Link className="secondary-action" to={`/systems/${overview.systemId}/runs`}>查看运行记录</Link></header>{overview.partial && <div className="partial-warning">部分指标暂不可用</div>}<div className="system-summary-grid"><span>API 资产<strong>{metric(overview.apiAssetCount)}</strong></span><span>P0 候选<strong>{metric(overview.p0CandidateCount)}</strong></span><span>场景<strong>{metric(overview.scenarioCount)}</strong></span><span>风险<strong>{metric(overview.riskCount)}</strong></span><span>成员<strong>{metric(overview.memberCount)}</strong></span><span>环境<strong>{metric(overview.environmentCount)}</strong></span><span>代码源<strong>{metric(overview.codeSourceCount)}</strong></span><span>最近运行<strong>{dateTime(overview.lastRunAt)}</strong></span></div><p>{runText(overview.runs24h)}</p></section>
 }
 
 export function SystemManagementOverview({ systemId }: { systemId: string }) {

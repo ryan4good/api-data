@@ -297,6 +297,10 @@ export interface ManagementSystemOverview {
   scenarioCount?: number
   runs24h?: ManagementRunCounts
   riskCount?: number
+  memberCount?: number
+  environmentCount?: number
+  codeSourceCount?: number
+  lastRunAt?: IsoDateTime | null
   risks?: ManagementRisk[]
   partial?: boolean
   unavailableMetrics?: string[]

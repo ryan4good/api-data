@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useOutletContext, useParams } from 'react-router-dom'
 import { apiClient } from '../api/client'
 import type { ApiClient } from '../api/client'
-import type { ApiOperation, ScanRun, ScenarioImport, SystemRole } from '../api/types'
+import type { ApiOperation, ScanRun, ScenarioImport, ScenarioRunDetail, ScenarioSummary, SystemRole } from '../api/types'
 import { Page, PlaceholderPanel } from '../components/Page'
 import { systemPath } from '../navigation'
 import type { SystemContextState } from '../layouts/SystemLayout'
@@ -69,19 +69,24 @@ export interface WorkspaceResourcesState {
   scans: ResourceState<ScanRun>
   operations: ResourceState<ApiOperation>
   imports: ResourceState<ScenarioImport>
+  scenarios: ResourceState<ScenarioSummary>
+  runs: ResourceState<ScenarioRunDetail>
 }
 
 const emptyResources: WorkspaceResourcesState = {
   scans: { status: 'ready', items: [] },
   operations: { status: 'ready', items: [] },
   imports: { status: 'ready', items: [] },
+  scenarios: { status: 'ready', items: [] },
+  runs: { status: 'ready', items: [] },
 }
 
 export const loadingWorkspaceResources = (): WorkspaceResourcesState => ({
   scans: { status: 'loading' }, operations: { status: 'loading' }, imports: { status: 'loading' },
+  scenarios: { status: 'loading' }, runs: { status: 'loading' },
 })
 
-type WorkspaceResourceClient = Pick<ApiClient, 'listScans' | 'listApiOperations' | 'listScenarioImports'>
+type WorkspaceResourceClient = Pick<ApiClient, 'listScans' | 'listApiOperations' | 'listScenarioImports' | 'listScenarios' | 'listScenarioRuns'>
 
 function settledResource<T>(result: PromiseSettledResult<T[]>, failureMessage: string): ResourceState<T> {
   return result.status === 'fulfilled'
@@ -90,15 +95,19 @@ function settledResource<T>(result: PromiseSettledResult<T[]>, failureMessage: s
 }
 
 export async function loadWorkspaceResources(client: WorkspaceResourceClient, systemId: string): Promise<WorkspaceResourcesState> {
-  const [scans, operations, imports] = await Promise.allSettled([
+  const [scans, operations, imports, scenarios, runs] = await Promise.allSettled([
     client.listScans(systemId),
     client.listApiOperations(systemId),
     client.listScenarioImports(systemId),
+    client.listScenarios(systemId),
+    client.listScenarioRuns(systemId),
   ])
   return {
     scans: settledResource(scans, '扫描记录加载失败'),
     operations: settledResource(operations, 'API 资产加载失败'),
     imports: settledResource(imports, '场景导入记录加载失败'),
+    scenarios: settledResource(scenarios, '业务场景加载失败'),
+    runs: settledResource(runs, '运行记录加载失败'),
   }
 }
 
@@ -169,14 +178,18 @@ export function SystemWorkspaceView({ state, resources = emptyResources, mutatio
           browseTo={path('discovery')}
           browseLabel="查看场景列表"
           actions={capabilities.editScenarios ? <WorkspaceAction to={path('editor')}>创建场景</WorkspaceAction> : undefined}
-        ><div className="workspace-resource workspace-empty"><strong>尚无业务场景</strong></div></WorkspaceCard>
+        >
+          <ResourceStatus state={resources.scenarios} loading="正在加载业务场景…" empty="尚无业务场景" summary={(count) => `业务场景 ${count} 个`} item={(scenario) => `${scenario.name} · ${scenario.status}`} />
+        </WorkspaceCard>
         <WorkspaceCard
           title="执行与结果"
           description="从场景入口发起运行，在当前系统范围查看步骤日志与结果记录。"
           browseTo={path('runs')}
           browseLabel="查看运行记录"
           actions={capabilities.runScenarios ? <WorkspaceAction to={path('runs')}>执行场景</WorkspaceAction> : undefined}
-        ><div className="workspace-resource workspace-empty"><strong>尚无运行记录</strong></div></WorkspaceCard>
+        >
+          <ResourceStatus state={resources.runs} loading="正在加载运行记录…" empty="尚无运行记录" summary={(count) => `运行记录 ${count} 条`} item={(run) => `${run.status} · ${run.outcome}`} />
+        </WorkspaceCard>
       </div>
     </Page>
   )
