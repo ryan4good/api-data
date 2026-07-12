@@ -63,7 +63,7 @@ export function DiscoveryPageView({ role, state, codeSources = { status: 'loadin
         <label>任务名称<input name="name" required placeholder="订单主链路发现" /></label>
         {requiresSource && codeSources.status === 'loading' && <div className="workspace-state">正在加载代码源…</div>}
         {requiresSource && codeSources.status === 'error' && <div className="workspace-state error-state"><strong>{codeSources.message}</strong></div>}
-        {requiresSource && codeSources.status === 'empty' && <div className="workspace-state">请先在系统设置中添加启用的代码源。{systemId && <> <Link to={`/systems/${systemId}/settings`}>前往系统设置</Link></>}</div>}
+        {requiresSource && codeSources.status === 'empty' && <div className="workspace-state">请先添加启用的代码源。{systemId && <> <Link to={`/systems/${systemId}/code-sources`}>前往代码源</Link></>}</div>}
         {requiresSource && codeSources.status === 'ready' && <label>代码源<select name="codeSourceId" required defaultValue=""><option value="" disabled>请选择代码源</option>{codeSources.items.map((source) => <option key={source.id} value={source.id}>{source.name}（{source.sourceType} · {source.defaultRef || '默认引用未设置'}）</option>)}</select></label>}
         <label>一句话需求<textarea name="prompt" rows={3} placeholder="例如：用户支付后锁定库存" /></label>
         <label>PRD 文档<textarea name="prd" rows={6} placeholder="没有 PRD 时可留空；PRD/mixed 时粘贴正文" /></label>

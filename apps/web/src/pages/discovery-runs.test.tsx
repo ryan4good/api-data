@@ -63,8 +63,8 @@ describe('discovery and runs pages', () => {
     const record = { id: 'discovery-1', systemId: 'system-a', type: 'code', name: '历史发现', status: 'ready', requestedBy: 'user-1', createdAt: '2026-07-12T00:00:00Z', updatedAt: '2026-07-12T00:00:00Z' } as const
     const empty = render(<DiscoveryPageView role="owner" systemId="system-a" state={{ status: 'ready', items: [record] }} codeSources={{ status: 'empty' }} onSubmit={noop} />)
     const failed = render(<DiscoveryPageView role="owner" state={{ status: 'ready', items: [record] }} codeSources={{ status: 'error', message: '代码源加载失败' }} onSubmit={noop} />)
-    expect(empty).toContain('/systems/system-a/settings')
-    expect(empty).toContain('请先在系统设置中添加启用的代码源')
+    expect(empty).toContain('/systems/system-a/code-sources')
+    expect(empty).toContain('请先添加启用的代码源')
     expect(failed).toContain('代码源加载失败')
     expect(failed).toContain('历史发现')
   })

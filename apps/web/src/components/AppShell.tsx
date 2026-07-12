@@ -11,13 +11,19 @@ export interface NavItem {
   icon: string
 }
 
+export interface NavGroup {
+  label: string
+  items: NavItem[]
+}
+
 interface AppShellProps {
-  navItems: NavItem[]
+  navItems?: NavItem[]
+  navGroups?: NavGroup[]
   context?: ReactNode
   children: ReactNode
 }
 
-export function AppShell({ navItems, context, children }: AppShellProps) {
+export function AppShell({ navItems = [], navGroups, context, children }: AppShellProps) {
   const navigate = useNavigate()
   const user = useAuthSession()?.user
 
@@ -38,23 +44,27 @@ export function AppShell({ navItems, context, children }: AppShellProps) {
           <span><strong>BizDevOps</strong><small>API Data Platform</small></span>
         </NavLink>
         {context}
-        <nav className="nav-list" aria-label="主导航">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
-            >
-              <span className="nav-icon" aria-hidden="true">{item.icon}</span>
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
+        <NavigationMenu groups={navGroups ?? [{ label: '', items: navItems }]} />
         {user && <AuthenticatedUserView user={user} onLogout={logout} />}
       </aside>
       <main className="main-content">{children}</main>
     </div>
+  )
+}
+
+export function NavigationMenu({ groups }: { groups: NavGroup[] }) {
+  return (
+    <nav className="nav-list" aria-label="主导航">
+      {groups.map((group) => group.items.length > 0 && <section className="nav-group" key={group.label || 'default'}>
+        {group.label && <div className="nav-group-title">{group.label}</div>}
+        <div className="nav-sublist">
+          {group.items.map((item) => <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => `nav-item nav-subitem${isActive ? ' active' : ''}`}>
+            <span className="nav-icon" aria-hidden="true">{item.icon}</span>
+            <span>{item.label}</span>
+          </NavLink>)}
+        </div>
+      </section>)}
+    </nav>
   )
 }
 

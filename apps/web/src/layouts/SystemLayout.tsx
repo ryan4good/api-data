@@ -3,7 +3,7 @@ import { Link, Outlet, useParams } from 'react-router-dom'
 import { apiClient } from '../api/client'
 import type { BusinessSystem, SystemRole } from '../api/types'
 import { AppShell } from '../components/AppShell'
-import { toSystemNavItems } from '../navigation'
+import { toSystemNavGroups } from '../system-navigation'
 
 export function SystemLayout() {
   const { systemId = '' } = useParams()
@@ -22,7 +22,7 @@ export function SystemLayout() {
 
   return (
     <AppShell
-      navItems={toSystemNavItems(systemId)}
+      navGroups={toSystemNavGroups(systemId)}
       context={<SystemContextView {...contextState} />}
     >
       <Outlet context={contextState} />

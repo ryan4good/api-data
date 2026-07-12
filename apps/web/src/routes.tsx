@@ -8,7 +8,8 @@ import { SystemOverviewPage } from './pages/system'
 import { ScenarioEditorPage } from './pages/scenario-editor'
 import { ScanPage } from './pages/scan'
 import { ApiAssetsPage } from './pages/api-assets'
-import { SystemSettingsPage } from './pages/system-settings'
+import { CodeSourceSettingsPage } from './pages/code-source-settings'
+import { EnvironmentSettingsPage, SystemMembersPage, SystemSettingsPage } from './pages/system-settings'
 import { DiscoveryPage, ReviewPage } from './pages/discovery'
 import { RunDetailPage, RunsPage } from './pages/runs'
 import { NotFoundPage } from './pages/NotFoundPage'
@@ -45,6 +46,7 @@ export const routes: RouteObject[] = [
           { path: 'overview', element: <SystemOverviewPage /> },
           { path: 'scan', element: <ScanPage /> },
           { path: 'apis', element: <ApiAssetsPage /> },
+          { path: 'code-sources', element: <CodeSourceSettingsPage /> },
           { path: 'discovery', element: <DiscoveryPage /> },
           { path: 'review', element: <ReviewPage /> },
           { path: 'editor', element: <ScenarioEditorPage /> },
@@ -52,6 +54,8 @@ export const routes: RouteObject[] = [
           { path: 'runs', element: <RunsPage /> },
           { path: 'runs/:runId', element: <RunDetailPage /> },
           { path: 'settings', element: <SystemSettingsPage /> },
+          { path: 'settings/environments', element: <EnvironmentSettingsPage /> },
+          { path: 'settings/members', element: <SystemMembersPage /> },
         ],
       },
       { path: '*', element: <NotFoundPage /> },

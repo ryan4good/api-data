@@ -80,7 +80,7 @@ export function CodeSourceSettingsPage() {
   }, [system?.id])
 
   if (!system) {
-    return <section className="page-card"><p>{context.status === 'error' ? '工作空间不可用' : '正在加载工作空间…'}</p></section>
+    return <main className="settings-page"><section className="page-card"><p>{context.status === 'error' ? '工作空间不可用' : '正在加载工作空间…'}</p></section></main>
   }
 
   const save = async (input: UpsertCodeSourceInput, sourceId?: string) => {
@@ -95,13 +95,13 @@ export function CodeSourceSettingsPage() {
     }
   }
 
-  return <CodeSourceSettingsView
+  return <main className="settings-page"><CodeSourceSettingsView
     role={system.myRole}
     state={state}
     feedback={feedback}
     onCreate={(input) => save(input)}
     onUpdate={(sourceId, input) => save(input, sourceId)}
-  />
+  /></main>
 }
 
 export function CodeSourceSettingsView({ role, state, feedback, onCreate, onUpdate }: {

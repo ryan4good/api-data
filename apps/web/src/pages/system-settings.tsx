@@ -1,9 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import { Navigate, useOutletContext } from 'react-router-dom'
 import { apiClient } from '../api/client'
 import type { CreateSecretReferenceInput, Environment, SecretReference, SystemMember, SystemRole, UpsertEnvironmentInput, UpsertSystemMemberInput } from '../api/types'
 import type { SystemContextState } from '../layouts/SystemLayout'
-import { CodeSourceSettingsPage } from './code-source-settings'
 
 export type EnvironmentState =
   | { status: 'loading' }
@@ -48,13 +47,19 @@ export function validateExternalSecretReference(value: string): boolean {
 }
 
 export function SystemSettingsPage() {
+  return <Navigate to="environments" replace />
+}
+
+function SettingsLoading({ context }: { context: SystemContextState }) {
+  return <main className="settings-page"><section className="page-card"><p>{context.status === 'error' ? '工作空间不可用' : '正在加载工作空间…'}</p></section></main>
+}
+
+export function EnvironmentSettingsPage() {
   const context = useOutletContext<SystemContextState>()
   const system = context.status === 'ready' ? context.system : undefined
   const [state, setState] = useState<EnvironmentState>({ status: 'loading' })
   const [references, setReferences] = useState<ReferenceStates>({})
   const [feedback, setFeedback] = useState<Feedback>()
-  const [memberState, setMemberState] = useState<MemberState>({ status: 'loading' })
-  const [memberFeedback, setMemberFeedback] = useState<Feedback>()
 
   const loadReference = async (systemId: string, environmentId: string) => {
     setReferences((current) => ({ ...current, [environmentId]: { status: 'loading' } }))
@@ -79,26 +84,12 @@ export function SystemSettingsPage() {
     }
   }
 
-  const loadMembers = async (systemId: string) => {
-    setMemberState({ status: 'loading' })
-    try {
-      const items = await apiClient.listSystemMembers(systemId)
-      setMemberState(items.length === 0 ? { status: 'empty' } : { status: 'ready', items })
-    } catch (error) {
-      setMemberState({ status: 'error', message: error instanceof Error ? error.message : '成员加载失败' })
-    }
-  }
-
   useEffect(() => {
     if (!system) return
     void loadEnvironments(system.id)
-    if (canManageMembers(system.myRole)) void loadMembers(system.id)
-    else setMemberState({ status: 'empty' })
-  }, [system?.id, system?.myRole])
+  }, [system?.id])
 
-  if (!system) {
-    return <main className="settings-page"><section className="page-card"><p>{context.status === 'error' ? '工作空间不可用' : '正在加载工作空间…'}</p></section></main>
-  }
+  if (!system) return <SettingsLoading context={context} />
 
   const upsertEnvironment = async (input: UpsertEnvironmentInput) => {
     setFeedback(undefined)
@@ -122,22 +113,47 @@ export function SystemSettingsPage() {
     }
   }
 
-  const upsertMember = async (input: UpsertSystemMemberInput) => {
-    setMemberFeedback(undefined)
+  return <main className="settings-page">
+    <EnvironmentSettingsView role={system.myRole} state={state} references={references} feedback={feedback} onUpsertEnvironment={upsertEnvironment} onCreateSecretReference={createSecretReference} />
+  </main>
+}
+
+export function SystemMembersPage() {
+  const context = useOutletContext<SystemContextState>()
+  const system = context.status === 'ready' ? context.system : undefined
+  const [state, setState] = useState<MemberState>({ status: 'loading' })
+  const [feedback, setFeedback] = useState<Feedback>()
+
+  const load = async (systemId: string) => {
+    setState({ status: 'loading' })
     try {
-      await apiClient.upsertSystemMember(system.id, input)
-      setMemberFeedback({ status: 'success', message: '成员角色已保存' })
-      await loadMembers(system.id)
+      const items = await apiClient.listSystemMembers(systemId)
+      setState(items.length === 0 ? { status: 'empty' } : { status: 'ready', items })
     } catch (error) {
-      setMemberFeedback({ status: 'error', message: error instanceof Error ? error.message : '成员角色保存失败' })
+      setState({ status: 'error', message: error instanceof Error ? error.message : '成员加载失败' })
     }
   }
 
-  return <main className="settings-page">
-    <CodeSourceSettingsPage />
-    <EnvironmentSettingsView role={system.myRole} state={state} references={references} feedback={feedback} onUpsertEnvironment={upsertEnvironment} onCreateSecretReference={createSecretReference} />
-    <MemberSettingsView role={system.myRole} state={memberState} feedback={memberFeedback} onUpsertMember={upsertMember} />
-  </main>
+  useEffect(() => {
+    if (!system) return
+    if (canManageMembers(system.myRole)) void load(system.id)
+    else setState({ status: 'empty' })
+  }, [system?.id, system?.myRole])
+
+  if (!system) return <SettingsLoading context={context} />
+
+  const upsert = async (input: UpsertSystemMemberInput) => {
+    setFeedback(undefined)
+    try {
+      await apiClient.upsertSystemMember(system.id, input)
+      setFeedback({ status: 'success', message: '成员角色已保存' })
+      await load(system.id)
+    } catch (error) {
+      setFeedback({ status: 'error', message: error instanceof Error ? error.message : '成员角色保存失败' })
+    }
+  }
+
+  return <main className="settings-page"><MemberSettingsView role={system.myRole} state={state} feedback={feedback} onUpsertMember={upsert} /></main>
 }
 
 export function EnvironmentSettingsView({ role, state, references, feedback, onUpsertEnvironment, onCreateSecretReference }: {

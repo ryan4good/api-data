@@ -64,7 +64,7 @@ function CreateScanForm({ disabled, codeSources, systemId, onCreate }: {
       <h2>创建扫描记录</h2>
       {codeSources.status === 'loading' && <div className="workspace-state">正在加载代码源…</div>}
       {codeSources.status === 'error' && <div className="workspace-state error-state"><strong>{codeSources.message}</strong></div>}
-      {hasNoActiveSources && <div className="workspace-state">请先在系统设置中添加启用的代码源。{systemId && <> <Link to={`/systems/${systemId}/settings`}>前往系统设置</Link></>}</div>}
+      {hasNoActiveSources && <div className="workspace-state">请先添加启用的代码源。{systemId && <> <Link to={`/systems/${systemId}/code-sources`}>前往代码源</Link></>}</div>}
       {activeSources.length > 0 && <label>代码源<select name="codeSourceId" required defaultValue=""><option value="" disabled>请选择代码源</option>{activeSources.map((source) => <option key={source.id} value={source.id}>{source.name}（{source.sourceType} · {source.defaultRef || '默认引用未设置'}）</option>)}</select></label>}
       <label>源码引用<input name="sourceRef" placeholder="例如 refs/heads/main" /></label>
       <label>提交版本<input name="sourceCommit" placeholder="例如 Git commit SHA" /></label>

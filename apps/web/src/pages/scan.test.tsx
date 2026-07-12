@@ -87,8 +87,8 @@ describe('ScanPageView', () => {
   it('disables creation honestly when active code sources are absent or unavailable without hiding records', () => {
     const empty = render(<ScanPageView role="owner" systemId="system-a" state={{ status: 'ready', items: [scan] }} codeSources={{ status: 'empty' }} onCreate={noop} onRun={noop} />)
     const failed = render(<ScanPageView role="owner" state={{ status: 'ready', items: [scan] }} codeSources={{ status: 'error', message: '代码源服务不可用' }} onCreate={noop} onRun={noop} />)
-    expect(empty).toContain('/systems/system-a/settings')
-    expect(empty).toContain('请先在系统设置中添加启用的代码源')
+    expect(empty).toContain('/systems/system-a/code-sources')
+    expect(empty).toContain('请先添加启用的代码源')
     expect(empty).toContain('disabled=""')
     expect(failed).toContain('代码源服务不可用')
     expect(failed).toContain('refs/heads/main')
