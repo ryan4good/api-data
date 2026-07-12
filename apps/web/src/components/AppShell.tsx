@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
+import type { AuthUser } from '../api/types'
+import { apiClient } from '../api/client'
+import { clearAuthSession, useAuthSession } from '../auth/session'
 
 export interface NavItem {
   label: string
@@ -15,6 +18,18 @@ interface AppShellProps {
 }
 
 export function AppShell({ navItems, context, children }: AppShellProps) {
+  const navigate = useNavigate()
+  const user = useAuthSession()?.user
+
+  async function logout() {
+    try {
+      await apiClient.logout()
+    } finally {
+      clearAuthSession()
+      navigate('/login', { replace: true })
+    }
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -36,12 +51,25 @@ export function AppShell({ navItems, context, children }: AppShellProps) {
             </NavLink>
           ))}
         </nav>
-        <div className="sidebar-footer">
-          <span className="avatar">RY</span>
-          <span><strong>平台管理员</strong><small>ryan@example.com</small></span>
-        </div>
+        {user && <AuthenticatedUserView user={user} onLogout={logout} />}
       </aside>
       <main className="main-content">{children}</main>
+    </div>
+  )
+}
+
+interface AuthenticatedUserViewProps {
+  user: AuthUser
+  onLogout: () => void | Promise<void>
+}
+
+export function AuthenticatedUserView({ user, onLogout }: AuthenticatedUserViewProps) {
+  const initials = user.displayName.trim().slice(0, 2).toUpperCase() || user.email.slice(0, 2).toUpperCase()
+  return (
+    <div className="sidebar-footer">
+      <span className="avatar" aria-hidden="true">{initials}</span>
+      <span className="sidebar-user"><strong>{user.displayName}</strong><small>{user.email}</small></span>
+      <button className="logout-action" type="button" onClick={onLogout}>退出登录</button>
     </div>
   )
 }

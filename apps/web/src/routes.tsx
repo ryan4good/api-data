@@ -13,36 +13,49 @@ import {
 import { DiscoveryPage, ReviewPage } from './pages/discovery'
 import { RunDetailPage, RunsPage } from './pages/runs'
 import { NotFoundPage } from './pages/NotFoundPage'
+import { AuthenticatedRoute } from './auth/AuthenticatedRoute'
+import { LoginPage } from './pages/login'
 
 export const routes: RouteObject[] = [
   {
-    path: '/',
-    element: <GlobalLayout />,
-    children: [
-      { index: true, element: <Navigate to="/dashboard" replace /> },
-      { path: 'dashboard', element: <ManagementDashboardPage /> },
-      { path: 'systems', element: <SystemsPage /> },
-      { path: 'runs', element: <GlobalRunsPage /> },
-      { path: 'runs/:runId', element: <GlobalRunDetailPage /> },
-      { path: 'settings', element: <GlobalSettingsPage /> },
-    ],
+    id: 'login',
+    path: '/login',
+    element: <LoginPage />,
   },
   {
-    path: '/systems/:systemId',
-    element: <SystemLayout />,
+    id: 'authenticated',
+    element: <AuthenticatedRoute />,
     children: [
-      { index: true, element: <Navigate to="overview" replace /> },
-      { path: 'overview', element: <SystemOverviewPage /> },
-      { path: 'scan', element: <ScanPage /> },
-      { path: 'apis', element: <ApiAssetsPage /> },
-      { path: 'discovery', element: <DiscoveryPage /> },
-      { path: 'review', element: <ReviewPage /> },
-      { path: 'editor', element: <EditorPage /> },
-      { path: 'editor/:scenarioId', element: <EditorPage /> },
-      { path: 'runs', element: <RunsPage /> },
-      { path: 'runs/:runId', element: <RunDetailPage /> },
-      { path: 'settings', element: <SystemSettingsPage /> },
+      {
+        path: '/',
+        element: <GlobalLayout />,
+        children: [
+          { index: true, element: <Navigate to="/dashboard" replace /> },
+          { path: 'dashboard', element: <ManagementDashboardPage /> },
+          { path: 'systems', element: <SystemsPage /> },
+          { path: 'runs', element: <GlobalRunsPage /> },
+          { path: 'runs/:runId', element: <GlobalRunDetailPage /> },
+          { path: 'settings', element: <GlobalSettingsPage /> },
+        ],
+      },
+      {
+        path: '/systems/:systemId',
+        element: <SystemLayout />,
+        children: [
+          { index: true, element: <Navigate to="overview" replace /> },
+          { path: 'overview', element: <SystemOverviewPage /> },
+          { path: 'scan', element: <ScanPage /> },
+          { path: 'apis', element: <ApiAssetsPage /> },
+          { path: 'discovery', element: <DiscoveryPage /> },
+          { path: 'review', element: <ReviewPage /> },
+          { path: 'editor', element: <EditorPage /> },
+          { path: 'editor/:scenarioId', element: <EditorPage /> },
+          { path: 'runs', element: <RunsPage /> },
+          { path: 'runs/:runId', element: <RunDetailPage /> },
+          { path: 'settings', element: <SystemSettingsPage /> },
+        ],
+      },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
-  { path: '*', element: <NotFoundPage /> },
 ]

@@ -50,6 +50,67 @@ func TestLoadJWTAuthentication(t *testing.T) {
 	if cfg.Auth.Mode != "jwt" || cfg.Auth.JWTSigningKey != "runtime-secret" {
 		t.Fatalf("auth=%#v", cfg.Auth)
 	}
+	if cfg.Auth.JWTTokenTTL != time.Hour {
+		t.Fatalf("token TTL=%s", cfg.Auth.JWTTokenTTL)
+	}
+	if cfg.Auth.CookieName != "bizdevops_session" || !cfg.Auth.CookieSecure || cfg.Auth.CookiePath != "/" {
+		t.Fatalf("cookie config=%#v", cfg.Auth)
+	}
+}
+
+func TestLoadJWTAuthenticationValidatesCookieConfiguration(t *testing.T) {
+	for _, tt := range []struct{ name, cookieName, cookiePath string }{
+		{name: "empty name", cookieName: "", cookiePath: "/"},
+		{name: "invalid name", cookieName: "bad;name", cookiePath: "/"},
+		{name: "invalid path", cookieName: "session", cookiePath: "relative"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("AUTH_MODE", "jwt")
+			t.Setenv("AUTH_JWT_ISSUER", "issuer")
+			t.Setenv("AUTH_JWT_AUDIENCE", "audience")
+			t.Setenv("AUTH_JWT_SIGNING_KEY", "secret")
+			t.Setenv("AUTH_COOKIE_NAME", tt.cookieName)
+			t.Setenv("AUTH_COOKIE_PATH", tt.cookiePath)
+			if _, err := Load(); err == nil {
+				t.Fatal("Load() expected cookie validation error")
+			}
+		})
+	}
+}
+
+func TestLoadJWTAuthenticationAcceptsPositiveTokenTTLAndRejectsNonPositiveTTL(t *testing.T) {
+	for _, value := range []string{"0s", "-1s", "not-a-duration"} {
+		t.Run(value, func(t *testing.T) {
+			t.Setenv("AUTH_MODE", "jwt")
+			t.Setenv("AUTH_JWT_ISSUER", "issuer")
+			t.Setenv("AUTH_JWT_AUDIENCE", "audience")
+			t.Setenv("AUTH_JWT_SIGNING_KEY", "secret")
+			t.Setenv("AUTH_JWT_TOKEN_TTL", value)
+			if _, err := Load(); err == nil {
+				t.Fatal("Load() expected token TTL validation error")
+			}
+		})
+	}
+	t.Setenv("AUTH_MODE", "jwt")
+	t.Setenv("AUTH_JWT_ISSUER", "issuer")
+	t.Setenv("AUTH_JWT_AUDIENCE", "audience")
+	t.Setenv("AUTH_JWT_SIGNING_KEY", "secret")
+	t.Setenv("AUTH_JWT_TOKEN_TTL", "30m")
+	cfg, err := Load()
+	if err != nil || cfg.Auth.JWTTokenTTL != 30*time.Minute {
+		t.Fatalf("auth=%#v err=%v", cfg.Auth, err)
+	}
+}
+
+func TestLoadJWTAuthenticationRejectsInvalidCookieSecureBoolean(t *testing.T) {
+	t.Setenv("AUTH_MODE", "jwt")
+	t.Setenv("AUTH_JWT_ISSUER", "issuer")
+	t.Setenv("AUTH_JWT_AUDIENCE", "audience")
+	t.Setenv("AUTH_JWT_SIGNING_KEY", "secret")
+	t.Setenv("AUTH_COOKIE_SECURE", "sometimes")
+	if _, err := Load(); err == nil {
+		t.Fatal("Load() expected cookie secure validation error")
+	}
 }
 
 func TestLoadHTTPExecutorConfiguration(t *testing.T) {

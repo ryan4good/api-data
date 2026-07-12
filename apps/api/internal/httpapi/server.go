@@ -23,6 +23,7 @@ import (
 )
 
 type Dependencies struct {
+	AuthUsers       access.UserRepository
 	Systems         system.Repository
 	Scans           scanner.Repository
 	Imports         importer.Repository
@@ -86,6 +87,10 @@ func NewWithDependencies(cfg config.Config, logger *slog.Logger, dependencies De
 		logger = slog.Default()
 	}
 	mux := http.NewServeMux()
+	identityUsers := dependencies.AuthUsers
+	if dependencies.AuthUsers == nil {
+		dependencies.AuthUsers = access.NewMemoryUserRepository(nil)
+	}
 
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -128,6 +133,11 @@ func NewWithDependencies(cfg config.Config, logger *slog.Logger, dependencies De
 
 	system.Register(mux, dependencies.Systems)
 	access.Register(mux)
+	access.RegisterAuthentication(mux, access.NewAuthenticationService(dependencies.AuthUsers, access.TokenOptions{
+		Issuer: cfg.Auth.JWTIssuer, Audience: cfg.Auth.JWTAudience, SigningKey: cfg.Auth.JWTSigningKey, TTL: cfg.Auth.JWTTokenTTL,
+	}), dependencies.AuthUsers, access.AuthenticationHTTPOptions{
+		CookieName: cfg.Auth.CookieName, CookieSecure: cfg.Auth.CookieSecure, CookiePath: cfg.Auth.CookiePath,
+	})
 	scanner.Register(mux)
 	scanner.RegisterSystemRoutes(mux, scanner.NewService(dependencies.Scans, scanner.AnalyzerFunc(scanner.Analyze)), dependencies.Systems)
 	importer.RegisterSystemRoutes(mux, importer.NewService(dependencies.Imports, importer.ServiceOptions{}), dependencies.Systems)
@@ -153,7 +163,7 @@ func NewWithDependencies(cfg config.Config, logger *slog.Logger, dependencies De
 	connector.Register(mux)
 
 	identity := access.RequestIdentity(cfg.Auth.Mode, access.JWTIdentityOptions{
-		Issuer: cfg.Auth.JWTIssuer, Audience: cfg.Auth.JWTAudience, SigningKey: cfg.Auth.JWTSigningKey,
+		Issuer: cfg.Auth.JWTIssuer, Audience: cfg.Auth.JWTAudience, SigningKey: cfg.Auth.JWTSigningKey, CookieName: cfg.Auth.CookieName, Users: identityUsers,
 	})
 	return requestLogger(logger, identity(mux))
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ApiError, createApiClient, resolveApiBaseUrl, resolveDevelopmentUserId } from './client'
+import { ApiError, createApiClient, resolveApiBaseUrl } from './client'
 
 describe('API client', () => {
   it('resolves the API under a configured deployment base path', () => {
@@ -7,12 +7,6 @@ describe('API client', () => {
     expect(resolveApiBaseUrl('/')).toBe('/api/v1')
   })
 
-  it('keeps an explicitly configured trial identity in production builds', () => {
-    expect(resolveDevelopmentUserId(' 10000000-0000-4000-8000-000000000001 '))
-      .toBe('10000000-0000-4000-8000-000000000001')
-    expect(resolveDevelopmentUserId('')).toBeUndefined()
-    expect(resolveDevelopmentUserId(undefined)).toBeUndefined()
-  })
   it('sends JSON and unwraps the API envelope', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(
       JSON.stringify({ data: { id: 'sys-1', name: '订单中心' } }),
@@ -26,17 +20,62 @@ describe('API client', () => {
     }))
   })
 
-  it('sends an explicit development identity only when configured', async () => {
+  it('uses same-origin credentials without exposing a bearer token to browser code', async () => {
     const transport = vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: [] }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     }))
-    const client = createApiClient({ developmentUserId: 'dev-user', transport })
+    const client = createApiClient({ transport })
 
     await client.listSystems()
 
     expect(transport).toHaveBeenCalledWith('/api/v1/systems', expect.objectContaining({
-      headers: expect.objectContaining({ 'X-Dev-User-ID': 'dev-user' }),
+      credentials: 'same-origin',
+      headers: expect.not.objectContaining({ Authorization: expect.anything() }),
+    }))
+  })
+
+  it('logs in without an existing credential and exposes the current-user endpoint', async () => {
+    const transport = vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: {
+      accessToken: 'new-token',
+      tokenType: 'Bearer',
+      expiresIn: 3600,
+      user: { id: 'user-1', email: 'admin@example.com', displayName: '管理员', platformRole: 'admin' },
+    } }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    const client = createApiClient({ transport })
+
+    await client.login({ email: 'admin@example.com', password: 'secret' })
+
+    expect(transport).toHaveBeenCalledWith('/api/v1/auth/login', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ email: 'admin@example.com', password: 'secret' }),
+      credentials: 'same-origin',
+    }))
+  })
+
+  it('notifies the session boundary when an authenticated request returns 401', async () => {
+    const onUnauthorized = vi.fn()
+    const transport = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      error: { code: 'UNAUTHORIZED', message: '登录已过期' },
+    }), { status: 401, headers: { 'Content-Type': 'application/json' } }))
+    const client = createApiClient({ onUnauthorized, transport })
+
+    await expect(client.getCurrentUser()).rejects.toMatchObject({ status: 401 })
+    expect(onUnauthorized).toHaveBeenCalledOnce()
+  })
+
+  it('ends the server session through the logout endpoint', async () => {
+    const transport = vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: null }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }))
+    const client = createApiClient({ transport })
+
+    await client.logout()
+
+    expect(transport).toHaveBeenCalledWith('/api/v1/auth/logout', expect.objectContaining({
+      method: 'POST',
+      credentials: 'same-origin',
     }))
   })
 

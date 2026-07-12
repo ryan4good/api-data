@@ -31,6 +31,10 @@ type Auth struct {
 	JWTIssuer     string
 	JWTAudience   string
 	JWTSigningKey string
+	JWTTokenTTL   time.Duration
+	CookieName    string
+	CookieSecure  bool
+	CookiePath    string
 }
 
 type HTTP struct {
@@ -72,6 +76,10 @@ func Load() (Config, error) {
 			JWTIssuer:     os.Getenv("AUTH_JWT_ISSUER"),
 			JWTAudience:   os.Getenv("AUTH_JWT_AUDIENCE"),
 			JWTSigningKey: os.Getenv("AUTH_JWT_SIGNING_KEY"),
+			JWTTokenTTL:   duration("AUTH_JWT_TOKEN_TTL", time.Hour),
+			CookieName:    env("AUTH_COOKIE_NAME", "bizdevops_session"),
+			CookieSecure:  boolean("AUTH_COOKIE_SECURE", true),
+			CookiePath:    env("AUTH_COOKIE_PATH", "/"),
 		},
 		ConnectorHTTP: ConnectorHTTP{
 			AllowedHosts:         splitCSV(os.Getenv("CONNECTOR_HTTP_ALLOWED_HOSTS")),
@@ -81,6 +89,20 @@ func Load() (Config, error) {
 			DefaultTimeout:       duration("CONNECTOR_HTTP_DEFAULT_TIMEOUT", 30*time.Second),
 			MaxTimeout:           duration("CONNECTOR_HTTP_MAX_TIMEOUT", 60*time.Second),
 		},
+	}
+	if value, ok := os.LookupEnv("AUTH_JWT_TOKEN_TTL"); ok {
+		parsed, err := time.ParseDuration(value)
+		if err != nil {
+			return Config{}, fmt.Errorf("AUTH_JWT_TOKEN_TTL must be a duration: %w", err)
+		}
+		cfg.Auth.JWTTokenTTL = parsed
+	}
+	if value, ok := os.LookupEnv("AUTH_COOKIE_SECURE"); ok {
+		parsed, err := strconv.ParseBool(value)
+		if err != nil {
+			return Config{}, fmt.Errorf("AUTH_COOKIE_SECURE must be a boolean: %w", err)
+		}
+		cfg.Auth.CookieSecure = parsed
 	}
 
 	if cfg.HTTP.Address == "" {
@@ -131,10 +153,31 @@ func validateAuth(auth Auth) error {
 		if auth.JWTSigningKey == "" {
 			return fmt.Errorf("AUTH_JWT_SIGNING_KEY is required when AUTH_MODE=jwt")
 		}
+		if auth.JWTTokenTTL <= 0 {
+			return fmt.Errorf("AUTH_JWT_TOKEN_TTL must be positive")
+		}
+		if !validCookieName(auth.CookieName) {
+			return fmt.Errorf("AUTH_COOKIE_NAME must be a valid non-empty cookie name")
+		}
+		if !strings.HasPrefix(auth.CookiePath, "/") {
+			return fmt.Errorf("AUTH_COOKIE_PATH must start with /")
+		}
 		return nil
 	default:
 		return fmt.Errorf("AUTH_MODE must be development or jwt")
 	}
+}
+
+func validCookieName(value string) bool {
+	if value == "" {
+		return false
+	}
+	for _, char := range value {
+		if char <= 0x20 || char >= 0x7f || strings.ContainsRune("()<>@,;:\\\"/[]?={}", char) {
+			return false
+		}
+	}
+	return true
 }
 
 func env(key, fallback string) string {

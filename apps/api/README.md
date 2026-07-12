@@ -14,6 +14,12 @@ Configuration is supplied through environment variables documented in
 audience and signing key values. Local development must explicitly set
 `AUTH_MODE=development` before using `X-Dev-User-ID`.
 
+JWT mode exposes `POST /api/v1/auth/login`, `GET /api/v1/auth/me`, and
+`POST /api/v1/auth/logout`. Login returns a Bearer access token and also sets
+an HttpOnly, SameSite=Strict session cookie for browser clients. Keep
+`AUTH_COOKIE_SECURE=true` outside local HTTP development and configure token
+lifetime with `AUTH_JWT_TOKEN_TTL` (default `1h`).
+
 ## Initial endpoints
 
 - `GET /healthz`

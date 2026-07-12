@@ -1,4 +1,5 @@
-import type { ApiEnvelope, ApiErrorEnvelope, ApiOperation, BusinessSystem, CreateDiscoveryInput, CreateDiscoveryResult, CreateScanInput, CreateScenarioRunInput, DiscoveryCandidate, DiscoveryRecord, ManagementOverview, ManagementSystemOverview, PromoteCandidateResult, RetryStepResult, ReviewCandidateInput, RunScanInput, RunScanResult, ScanRun, ScenarioDetail, ScenarioImport, ScenarioRunDetail, ScenarioSummary, UploadScenarioImportInput } from './types'
+import type { ApiEnvelope, ApiErrorEnvelope, ApiOperation, AuthUser, BusinessSystem, CreateDiscoveryInput, CreateDiscoveryResult, CreateScanInput, CreateScenarioRunInput, DiscoveryCandidate, DiscoveryRecord, LoginInput, LoginResult, ManagementOverview, ManagementSystemOverview, PromoteCandidateResult, RetryStepResult, ReviewCandidateInput, RunScanInput, RunScanResult, ScanRun, ScenarioDetail, ScenarioImport, ScenarioRunDetail, ScenarioSummary, UploadScenarioImportInput } from './types'
+import { clearAuthSession } from '../auth/session'
 
 export class ApiError extends Error {
   constructor(
@@ -15,8 +16,7 @@ export class ApiError extends Error {
 
 export interface ApiClientOptions {
   baseUrl?: string
-  getAccessToken?: () => string | undefined
-  developmentUserId?: string
+  onUnauthorized?: () => void
   transport?: typeof fetch
 }
 
@@ -25,28 +25,23 @@ export function resolveApiBaseUrl(basePath: string): string {
   return `${normalized === '' ? '' : normalized}/api/v1`
 }
 
-export function resolveDevelopmentUserId(configuredUserId: string | undefined): string | undefined {
-  return configuredUserId?.trim() || undefined
-}
-
 export function createApiClient(options: ApiClientOptions = {}) {
   const baseUrl = (options.baseUrl ?? resolveApiBaseUrl(import.meta.env.BASE_URL)).replace(/\/$/, '')
   const transport = options.transport ?? fetch
 
-  async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-    const token = options.getAccessToken?.()
+  async function request<T>(path: string, init: RequestInit = {}, authenticate = true): Promise<T> {
     const response = await transport(`${baseUrl}${path}`, {
       ...init,
+      credentials: 'same-origin',
       headers: {
         Accept: 'application/json',
         ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(options.developmentUserId ? { 'X-Dev-User-ID': options.developmentUserId } : {}),
         ...init.headers,
       },
     })
     const payload = await response.json() as ApiEnvelope<T> | ApiErrorEnvelope
     if (!response.ok) {
+      if (response.status === 401 && authenticate) options.onUnauthorized?.()
       const failure = (payload as ApiErrorEnvelope).error
       throw new ApiError(
         failure?.message ?? `Request failed with status ${response.status}`,
@@ -60,6 +55,9 @@ export function createApiClient(options: ApiClientOptions = {}) {
   }
 
   return {
+    login: (input: LoginInput) => request<LoginResult>('/auth/login', { method: 'POST', body: JSON.stringify(input) }, false),
+    getCurrentUser: () => request<AuthUser>('/auth/me'),
+    logout: () => request<null>('/auth/logout', { method: 'POST' }, false),
     listSystems: () => request<BusinessSystem[]>('/systems'),
     getSystem: (systemId: string) => request<BusinessSystem>(`/systems/${encodeURIComponent(systemId)}`),
     listScans: (systemId: string) => request<ScanRun[]>(`/systems/${encodeURIComponent(systemId)}/scans`),
@@ -88,6 +86,17 @@ export function createApiClient(options: ApiClientOptions = {}) {
 }
 
 export type ApiClient = ReturnType<typeof createApiClient>
+
+function redirectToLogin(): void {
+  if (typeof window === 'undefined') return
+  const basePath = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`
+  const loginPath = `${basePath}login`.replace(/\/+/g, '/')
+  if (window.location.pathname !== loginPath) window.location.replace(loginPath)
+}
+
 export const apiClient = createApiClient({
-  developmentUserId: resolveDevelopmentUserId(import.meta.env.VITE_DEV_USER_ID),
+  onUnauthorized: () => {
+    clearAuthSession()
+    redirectToLogin()
+  },
 })

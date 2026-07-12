@@ -1,6 +1,26 @@
 export type Identifier = string
 export type IsoDateTime = string
 export type SystemRole = 'owner' | 'maintainer' | 'reviewer' | 'runner' | 'viewer'
+export type PlatformRole = 'admin' | 'member' | 'auditor'
+
+export interface AuthUser {
+  id: Identifier
+  email: string
+  displayName: string
+  platformRole: PlatformRole
+}
+
+export interface LoginInput {
+  email: string
+  password: string
+}
+
+export interface LoginResult {
+  accessToken?: string
+  tokenType?: string
+  expiresIn: number
+  user: AuthUser
+}
 
 export interface BusinessSystem {
   id: Identifier

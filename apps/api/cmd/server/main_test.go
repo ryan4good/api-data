@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"bizdevops/apps/api/internal/config"
+	"bizdevops/apps/api/internal/modules/access"
 	"bizdevops/apps/api/internal/modules/connector"
 	"bizdevops/apps/api/internal/modules/discovery"
 	"bizdevops/apps/api/internal/modules/environment"
@@ -55,6 +56,9 @@ func TestSelectWorkflowRepositoriesUsesMemoryWithoutDSN(t *testing.T) {
 	}
 	if _, ok := dependencies.environments.(*environment.MemoryRepository); !ok {
 		t.Fatalf("environment repository type = %T", dependencies.environments)
+	}
+	if _, ok := dependencies.authUsers.(*access.MemoryUserRepository); !ok {
+		t.Fatalf("auth user repository type = %T", dependencies.authUsers)
 	}
 	if err := closeRepositories(); err != nil {
 		t.Fatal(err)

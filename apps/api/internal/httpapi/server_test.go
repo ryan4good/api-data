@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,7 +21,38 @@ import (
 	"bizdevops/apps/api/internal/modules/scenario"
 	"bizdevops/apps/api/internal/modules/system"
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 )
+
+func TestAuthenticationRoutesUseInjectedUsersAndCookieAlongsideNginxBasicAuthorization(t *testing.T) {
+	hash, err := bcrypt.GenerateFromPassword([]byte("password-123"), bcrypt.MinCost)
+	if err != nil {
+		t.Fatal(err)
+	}
+	users := access.NewMemoryUserRepository([]access.User{{
+		ID: "10000000-0000-4000-8000-000000000001", Email: "admin@example.test", DisplayName: "Admin",
+		PasswordHash: string(hash), PlatformRole: "admin", Status: "active",
+	}})
+	handler := NewWithDependencies(config.Config{ServiceName: "test-api", Environment: "test", Auth: config.Auth{
+		Mode: "jwt", JWTIssuer: "issuer", JWTAudience: "audience", JWTSigningKey: "signing-key", JWTTokenTTL: time.Hour,
+		CookieName: "bizdevops_session", CookiePath: "/", CookieSecure: true,
+	}}, slog.New(slog.NewTextHandler(io.Discard, nil)), Dependencies{AuthUsers: users})
+
+	login := httptest.NewRecorder()
+	handler.ServeHTTP(login, httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(`{"email":"admin@example.test","password":"password-123"}`)))
+	if login.Code != http.StatusOK || len(login.Result().Cookies()) != 1 {
+		t.Fatalf("login status=%d body=%s cookies=%#v", login.Code, login.Body.String(), login.Result().Cookies())
+	}
+
+	me := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/auth/me", nil)
+	request.Header.Set("Authorization", "Basic nginx-credential-placeholder")
+	request.AddCookie(login.Result().Cookies()[0])
+	handler.ServeHTTP(me, request)
+	if me.Code != http.StatusOK || !strings.Contains(me.Body.String(), `"platformRole":"admin"`) {
+		t.Fatalf("me status=%d body=%s", me.Code, me.Body.String())
+	}
+}
 
 func TestSystemWorkflowRoutesAreRegisteredWithInjectedRepositories(t *testing.T) {
 	const systemID = "11111111-1111-4111-8111-111111111111"

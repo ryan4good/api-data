@@ -22,6 +22,8 @@ type JWTIdentityOptions struct {
 	Issuer     string
 	Audience   string
 	SigningKey string
+	CookieName string
+	Users      UserRepository
 }
 
 type actorContextKey struct{}
@@ -55,6 +57,11 @@ func JWTIdentity(options JWTIdentityOptions) func(http.Handler) http.Handler {
 				return
 			}
 			rawToken, ok := bearerToken(r.Header.Get("Authorization"))
+			if !ok && options.CookieName != "" {
+				if cookie, err := r.Cookie(options.CookieName); err == nil && cookie.Value != "" {
+					rawToken, ok = cookie.Value, true
+				}
+			}
 			if !ok {
 				authenticationFailure(w)
 				return
@@ -80,6 +87,13 @@ func JWTIdentity(options JWTIdentityOptions) func(http.Handler) http.Handler {
 				authenticationFailure(w)
 				return
 			}
+			if options.Users != nil {
+				user, err := options.Users.FindByID(r.Context(), subject)
+				if err != nil || user.Status != "active" {
+					authenticationFailure(w)
+					return
+				}
+			}
 			ctx := context.WithValue(r.Context(), actorContextKey{}, Actor{UserID: subject})
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
@@ -92,6 +106,10 @@ func JWTIdentity(options JWTIdentityOptions) func(http.Handler) http.Handler {
 func RequestIdentity(mode string, options JWTIdentityOptions) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/api/v1/auth/login" || r.URL.Path == "/api/v1/auth/logout" {
+				next.ServeHTTP(w, r)
+				return
+			}
 			switch mode {
 			case "development":
 				if r.Header.Get(DevelopmentUserHeader) == "" {
@@ -104,7 +122,9 @@ func RequestIdentity(mode string, options JWTIdentityOptions) func(http.Handler)
 					authenticationFailure(w)
 					return
 				}
-				if r.Header.Get("Authorization") == "" {
+				_, hasBearer := bearerToken(r.Header.Get("Authorization"))
+				_, cookieErr := r.Cookie(options.CookieName)
+				if !hasBearer && cookieErr != nil {
 					next.ServeHTTP(w, r)
 					return
 				}

@@ -12,6 +12,7 @@ import (
 
 	"bizdevops/apps/api/internal/config"
 	"bizdevops/apps/api/internal/httpapi"
+	"bizdevops/apps/api/internal/modules/access"
 	"bizdevops/apps/api/internal/modules/connector"
 	"bizdevops/apps/api/internal/modules/discovery"
 	"bizdevops/apps/api/internal/modules/environment"
@@ -26,6 +27,7 @@ import (
 )
 
 type workflowDependencies struct {
+	authUsers    access.UserRepository
 	scans        scanner.Repository
 	imports      importer.Repository
 	management   management.Repository
@@ -57,7 +59,8 @@ var openWorkflowMySQL = func(ctx context.Context, dsn string, pool system.MySQLP
 		return workflowDependencies{}, nil, err
 	}
 	return workflowDependencies{
-		scans: scanner.NewMySQLRepository(db), imports: importer.NewMySQLRepository(db),
+		authUsers: access.NewMySQLUserRepository(db),
+		scans:     scanner.NewMySQLRepository(db), imports: importer.NewMySQLRepository(db),
 		management:   management.NewMySQLRepository(db),
 		environments: environment.NewMySQLRepository(db),
 		discoveries:  discovery.NewMySQLRepository(db), executions: execution.NewMySQLRepository(db),
@@ -108,7 +111,8 @@ func main() {
 	server := &http.Server{
 		Addr: cfg.HTTP.Address,
 		Handler: httpapi.NewWithDependencies(cfg, logger, httpapi.Dependencies{
-			Systems: repository, Scans: workflows.scans, Imports: workflows.imports, Management: workflows.management, Environments: workflows.environments,
+			AuthUsers: workflows.authUsers,
+			Systems:   repository, Scans: workflows.scans, Imports: workflows.imports, Management: workflows.management, Environments: workflows.environments,
 			Discoveries: workflows.discoveries, Scenarios: workflows.scenarios, Executions: workflows.executions, Steps: workflows.steps, Executor: executor,
 		}),
 		ReadHeaderTimeout: cfg.HTTP.ReadHeaderTimeout,
@@ -141,7 +145,8 @@ func main() {
 func selectWorkflowRepositories(ctx context.Context, cfg config.MySQL) (workflowDependencies, func() error, error) {
 	if cfg.DSN == "" {
 		return workflowDependencies{
-			scans: scanner.NewMemoryRepository(), imports: importer.NewMemoryRepository(),
+			authUsers: access.NewMemoryUserRepository(nil),
+			scans:     scanner.NewMemoryRepository(), imports: importer.NewMemoryRepository(),
 			management:   management.NewMemoryRepository(nil, nil, nil),
 			environments: environment.NewMemoryRepository(),
 			discoveries:  discovery.NewMemoryRepository(), executions: execution.NewMemoryRepository(),
