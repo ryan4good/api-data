@@ -199,4 +199,25 @@ describe('API client', () => {
       '/api/v1/management/systems/system%20%2F%20A/overview',
     ])
   })
+
+  it('uses system-scoped environment and external secret-reference endpoints', async () => {
+    const transport = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ data: [] }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    const client = createApiClient({ baseUrl: '/api/v1', transport })
+    const environment = { key: 'staging', name: '预发布', status: 'active' as const, variables: { BASE_URL: 'https://staging.example.test' } }
+    const reference = { variableKey: 'DB_PASSWORD', secretRef: 'vault://bizdevops/staging/db-password' }
+
+    await client.listEnvironments('system / A')
+    await client.upsertEnvironment('system / A', environment)
+    await client.upsertEnvironment('system / A', { ...environment, id: 'env / 1', status: 'disabled' })
+    await client.listSecretReferences('system / A', 'env / 1')
+    await client.createSecretReference('system / A', 'env / 1', reference)
+
+    expect(transport.mock.calls.map(([url, init]) => [url, init.method ?? 'GET', init.body])).toEqual([
+      ['/api/v1/systems/system%20%2F%20A/environments', 'GET', undefined],
+      ['/api/v1/systems/system%20%2F%20A/environments', 'POST', JSON.stringify(environment)],
+      ['/api/v1/systems/system%20%2F%20A/environments', 'POST', JSON.stringify({ ...environment, id: 'env / 1', status: 'disabled' })],
+      ['/api/v1/systems/system%20%2F%20A/environments/env%20%2F%201/secret-references', 'GET', undefined],
+      ['/api/v1/systems/system%20%2F%20A/environments/env%20%2F%201/secret-references', 'POST', JSON.stringify(reference)],
+    ])
+  })
 })

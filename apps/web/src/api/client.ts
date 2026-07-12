@@ -1,4 +1,4 @@
-import type { ApiEnvelope, ApiErrorEnvelope, ApiOperation, AuthUser, BusinessSystem, CreateDiscoveryInput, CreateDiscoveryResult, CreateScanInput, CreateScenarioRunInput, DiscoveryCandidate, DiscoveryRecord, LoginInput, LoginResult, ManagementOverview, ManagementSystemOverview, PromoteCandidateResult, RetryStepResult, ReviewCandidateInput, RunScanInput, RunScanResult, ScanRun, ScenarioDetail, ScenarioImport, ScenarioRunDetail, ScenarioSummary, UploadScenarioImportInput } from './types'
+import type { ApiEnvelope, ApiErrorEnvelope, ApiOperation, AuthUser, BusinessSystem, CreateDiscoveryInput, CreateDiscoveryResult, CreateScanInput, CreateScenarioRunInput, CreateSecretReferenceInput, DiscoveryCandidate, DiscoveryRecord, Environment, LoginInput, LoginResult, ManagementOverview, ManagementSystemOverview, PromoteCandidateResult, RetryStepResult, ReviewCandidateInput, RunScanInput, RunScanResult, ScanRun, ScenarioDetail, ScenarioImport, ScenarioRunDetail, ScenarioSummary, SecretReference, UploadScenarioImportInput, UpsertEnvironmentInput } from './types'
 import { clearAuthSession } from '../auth/session'
 
 export class ApiError extends Error {
@@ -60,6 +60,10 @@ export function createApiClient(options: ApiClientOptions = {}) {
     logout: () => request<null>('/auth/logout', { method: 'POST' }, false),
     listSystems: () => request<BusinessSystem[]>('/systems'),
     getSystem: (systemId: string) => request<BusinessSystem>(`/systems/${encodeURIComponent(systemId)}`),
+    listEnvironments: (systemId: string) => request<Environment[]>(`/systems/${encodeURIComponent(systemId)}/environments`),
+    upsertEnvironment: (systemId: string, input: UpsertEnvironmentInput) => request<Environment>(`/systems/${encodeURIComponent(systemId)}/environments`, { method: 'POST', body: JSON.stringify(input) }),
+    listSecretReferences: (systemId: string, environmentId: string) => request<SecretReference[]>(`/systems/${encodeURIComponent(systemId)}/environments/${encodeURIComponent(environmentId)}/secret-references`),
+    createSecretReference: (systemId: string, environmentId: string, input: CreateSecretReferenceInput) => request<SecretReference>(`/systems/${encodeURIComponent(systemId)}/environments/${encodeURIComponent(environmentId)}/secret-references`, { method: 'POST', body: JSON.stringify(input) }),
     listScans: (systemId: string) => request<ScanRun[]>(`/systems/${encodeURIComponent(systemId)}/scans`),
     listApiOperations: (systemId: string) => request<ApiOperation[]>(`/systems/${encodeURIComponent(systemId)}/api-operations`),
     listScenarioImports: (systemId: string) => request<ScenarioImport[]>(`/systems/${encodeURIComponent(systemId)}/scenario-imports`),

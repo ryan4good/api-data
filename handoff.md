@@ -25,6 +25,7 @@
   - `1377d8e feat: deploy BizDevOps Tencent trial`
   - `2a07418 fix: preserve trial identity in production build`
   - `38e6f0f feat: add secure JWT login flow`
+  - `ad15fbb feat: complete system overview with real data`
 
 本轮正式认证变更包括：
 
@@ -38,6 +39,9 @@
 - 集成修复：过期/轮换前 Cookie 不再阻止重新登录或退出清 Cookie。
 - 单系统概览：场景和运行卡片已接真实 scoped API，不再硬编码空状态。
 - 管理摘要：新增成员、环境、代码源和最近运行指标；缺失值保持未知而非伪造 0。
+- 代码扫描页：真实列表、创建与执行，写操作只对 owner/maintainer 展示。
+- API 资产页：真实资产表格与 method/status/path 筛选，无虚假写按钮。
+- 系统设置页：真实环境与 external secret reference 管理，Viewer 引用位置脱敏。
 
 敏感文件 `docs/tencent.txt` 已由 `.gitignore` 精确忽略。绝不能输出内容、暂存或提交。所有 shell 命令仍必须按 `C:\Users\ryanf\.codex\RTK.md` 以 `rtk` 开头。
 
@@ -86,7 +90,7 @@ Nginx Basic Auth 与 Bearer JWT 都使用 `Authorization` Header。浏览器无�
 
 - API：`go test -count=1 ./...` 通过。
 - API：`go vet ./...` 通过。
-- Web：13 个测试文件、55 项测试通过。
+- Web：16 个测试文件、71 项测试通过。
 - Web：`VITE_BASE_PATH=/bizdevops/` 且不设置 `VITE_DEV_USER_ID` 的生产构建通过。
 - Python DB/部署静态契约：21 项通过。
 - 部署契约覆盖 JWT 必需配置、安全 Cookie、禁止 Web Storage token、登录限流、TLS 门禁和回滚。
@@ -168,6 +172,7 @@ staging unit、env、Cookie jar、临时 release 已清理，测试用户原 pas
 - `docs/progress/tencent-trial-deployment.md`
 - `docs/progress/authentication-jwt-login.md`
 - `docs/progress/system-overview-real-data.md`
+- `docs/progress/system-operational-pages.md`
 - `docs/progress/root-end-to-end-scenario.md`
 - `docs/progress/root-operations-integration.md`
 - `deploy/tencent/README.md`
@@ -180,3 +185,4 @@ TLS 与正式登录上线后，优先继续：
 2. Vault/AWS/GCP SecretProvider adapter。
 3. 多 Worker 并发 E2E、容量限制、指标与告警。
 4. 密码重置、管理员用户管理、多因素认证或外部 IdP/OIDC。
+5. 完成仍为占位状态的场景编排器、全局运行记录和平台设置页面。

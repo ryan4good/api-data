@@ -320,10 +320,7 @@ export function SystemOverviewPage() {
 
   return <SystemWorkspaceView state={state ?? { status: 'loading' }} resources={resources} mutationPanel={mutationPanel} />
 }
-export const ScanPage = () => <StaticPage title="代码扫描" description="配置仓库与扫描插件，从 Go / Gin 源码提取标准 API 资产。" action="新建扫描任务" capability="manageAssets" />
-export const ApiAssetsPage = () => <StaticPage title="API 资产" description="查看、筛选并核验从代码或描述文件同步的 API。" action="导入 API" capability="manageAssets" />
 export const DiscoveryPage = () => <StaticPage title="场景发现" description="从调用关系、测试代码和接口语义生成可解释的场景候选。" action="生成候选" capability="manageAssets" />
 export const ReviewPage = () => <StaticPage title="待核验场景" description="集中处理候选场景、导入冲突和缺失的变量依赖。" action="人工核验" capability="reviewScenarios" />
 export function EditorPage() { const { scenarioId } = useParams(); return <StaticPage title="场景编排" description={scenarioId ? `正在编辑场景 ${scenarioId}。` : '以步骤、变量、断言和失败策略编排可执行场景。'} action="导入场景 JSON" capability="importScenarios" /> }
 export const RunsPage = () => <StaticPage title="运行记录" description="追踪场景执行状态、步骤日志、断言结果和脱敏后的请求响应。" action="立即执行" capability="runScenarios" />
-export const SystemSettingsPage = () => <StaticPage title="系统设置" description="管理当前业务系统的成员、角色、仓库和环境连接器。" />

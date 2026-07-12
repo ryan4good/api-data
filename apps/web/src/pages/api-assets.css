@@ -1,0 +1,18 @@
+.api-assets-filters { display: grid; grid-template-columns: 150px 180px minmax(220px, 1fr) auto; align-items: end; gap: 14px; margin-bottom: 18px; border: 1px solid #dfe5ee; border-radius: 12px; padding: 16px; background: #fff; }
+.api-assets-filters label { display: grid; gap: 6px; color: #5f6b7e; font-size: 12px; font-weight: 600; }
+.api-assets-filters input, .api-assets-filters select { width: 100%; border: 1px solid #d8e0eb; border-radius: 7px; padding: 9px 10px; color: #253044; background: #fff; font: inherit; }
+.api-assets-filters > strong { padding: 9px 0; color: #253044; white-space: nowrap; }
+.api-assets-filters > strong span { color: #8791a2; font-size: 12px; font-weight: 500; }
+.api-assets-table { overflow-x: auto; border: 1px solid #e2e7ef; border-radius: 12px; background: #fff; }
+.api-assets-row { display: grid; grid-template-columns: minmax(220px, 1.6fr) minmax(140px, 1.1fr) minmax(110px, .8fr) minmax(100px, .7fr) minmax(100px, .7fr) minmax(150px, 1fr); gap: 14px; align-items: center; min-width: 980px; padding: 14px 16px; border-top: 1px solid #edf0f5; color: #4f5d72; font-size: 13px; }
+.api-assets-row:first-child { border-top: 0; }
+.api-assets-row:not(.api-assets-head):hover { background: #f7f9fc; }
+.api-assets-head { color: #8791a2; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.api-assets-row > span:first-child { display: flex; align-items: center; gap: 10px; }
+.api-assets-row code { color: #253044; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; }
+.api-method { min-width: 48px; border-radius: 5px; padding: 4px 7px; color: #2857b6; background: #eaf1ff; text-align: center; font-size: 11px; }
+.api-method.method-post { color: #087354; background: #e5f8f1; }
+.api-method.method-put, .api-method.method-patch { color: #8a5700; background: #fff3d8; }
+.api-method.method-delete { color: #b9362b; background: #ffebe8; }
+@media (max-width: 900px) { .api-assets-filters { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .api-assets-filters { grid-template-columns: 1fr; } }

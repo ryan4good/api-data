@@ -3,13 +3,10 @@ import { GlobalLayout } from './layouts/GlobalLayout'
 import { SystemLayout } from './layouts/SystemLayout'
 import { SystemsPage, GlobalRunDetailPage, GlobalRunsPage, GlobalSettingsPage } from './pages/global'
 import { ManagementDashboardPage } from './pages/management'
-import {
-  ApiAssetsPage,
-  EditorPage,
-  ScanPage,
-  SystemOverviewPage,
-  SystemSettingsPage,
-} from './pages/system'
+import { EditorPage, SystemOverviewPage } from './pages/system'
+import { ScanPage } from './pages/scan'
+import { ApiAssetsPage } from './pages/api-assets'
+import { SystemSettingsPage } from './pages/system-settings'
 import { DiscoveryPage, ReviewPage } from './pages/discovery'
 import { RunDetailPage, RunsPage } from './pages/runs'
 import { NotFoundPage } from './pages/NotFoundPage'

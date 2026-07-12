@@ -33,6 +33,45 @@ export interface BusinessSystem {
   updatedAt: IsoDateTime
 }
 
+export type EnvironmentStatus = 'active' | 'disabled'
+
+export interface Environment {
+  id: Identifier
+  systemId: Identifier
+  key: string
+  name: string
+  variables: Record<string, string>
+  status: EnvironmentStatus
+  createdBy: Identifier
+  createdAt: IsoDateTime
+  updatedAt: IsoDateTime
+}
+
+export interface UpsertEnvironmentInput {
+  id?: Identifier
+  key: string
+  name: string
+  variables: Record<string, string>
+  status: EnvironmentStatus
+}
+
+export interface SecretReference {
+  id: Identifier
+  systemId: Identifier
+  environmentId: Identifier
+  variableKey: string
+  /** Omitted by the backend when the caller has the viewer role. */
+  secretRef?: string
+  createdBy: Identifier
+  createdAt: IsoDateTime
+  updatedAt: IsoDateTime
+}
+
+export interface CreateSecretReferenceInput {
+  variableKey: string
+  secretRef: string
+}
+
 export interface ApiOperation {
   id: Identifier
   systemId: Identifier
