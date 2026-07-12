@@ -97,7 +97,7 @@ export function SystemSettingsPage() {
   }, [system?.id, system?.myRole])
 
   if (!system) {
-    return <section className="page-card"><p>{context.status === 'error' ? '工作空间不可用' : '正在加载工作空间…'}</p></section>
+    return <main className="settings-page"><section className="page-card"><p>{context.status === 'error' ? '工作空间不可用' : '正在加载工作空间…'}</p></section></main>
   }
 
   const upsertEnvironment = async (input: UpsertEnvironmentInput) => {
@@ -133,11 +133,11 @@ export function SystemSettingsPage() {
     }
   }
 
-  return <>
+  return <main className="settings-page">
     <CodeSourceSettingsPage />
     <EnvironmentSettingsView role={system.myRole} state={state} references={references} feedback={feedback} onUpsertEnvironment={upsertEnvironment} onCreateSecretReference={createSecretReference} />
     <MemberSettingsView role={system.myRole} state={memberState} feedback={memberFeedback} onUpsertMember={upsertMember} />
-  </>
+  </main>
 }
 
 export function EnvironmentSettingsView({ role, state, references, feedback, onUpsertEnvironment, onCreateSecretReference }: {
