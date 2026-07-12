@@ -62,3 +62,10 @@
 ## 访问凭据
 
 访问 URL、用户名和随机 Basic Auth 密码只保存在服务器 `/root/bizdevops-trial-access.txt`，权限为 `0600`。通过已验证 SSH 连接在服务器本地读取，不要复制到仓库、issue、日志或聊天记录。
+
+## 生产身份 Header 修复
+
+- 用户首次访问时 UI 全部显示 `development user header is required`。根因确认是前端用 `import.meta.env.DEV` 门控 `VITE_DEV_USER_ID`；Vite 生产构建中 `DEV=false`，导致部署时显式提供的试运行 UUID 被丢弃。
+- 保留 Nginx Basic Auth，未移除后端 RBAC；仅让显式配置的 `VITE_DEV_USER_ID` 在受 Basic Auth 保护的生产试运行构建中生效。
+- 新增 TS 回归测试和部署静态契约，完成 Red→Green；Web 现为 10 个测试文件、46 个测试通过。
+- 修复 release：`20260712033413-identity-hotfix`。远端确认 bundle 含试运行 UUID，未授权 UI 401，授权 UI/asset 200，管理总览 API 200，原路由行为不变。

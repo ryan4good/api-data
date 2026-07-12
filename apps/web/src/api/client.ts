@@ -25,6 +25,10 @@ export function resolveApiBaseUrl(basePath: string): string {
   return `${normalized === '' ? '' : normalized}/api/v1`
 }
 
+export function resolveDevelopmentUserId(configuredUserId: string | undefined): string | undefined {
+  return configuredUserId?.trim() || undefined
+}
+
 export function createApiClient(options: ApiClientOptions = {}) {
   const baseUrl = (options.baseUrl ?? resolveApiBaseUrl(import.meta.env.BASE_URL)).replace(/\/$/, '')
   const transport = options.transport ?? fetch
@@ -85,5 +89,5 @@ export function createApiClient(options: ApiClientOptions = {}) {
 
 export type ApiClient = ReturnType<typeof createApiClient>
 export const apiClient = createApiClient({
-  developmentUserId: import.meta.env.DEV ? import.meta.env.VITE_DEV_USER_ID : undefined,
+  developmentUserId: resolveDevelopmentUserId(import.meta.env.VITE_DEV_USER_ID),
 })

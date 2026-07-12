@@ -43,9 +43,12 @@ class TencentDeploymentContractTest(unittest.TestCase):
 
     def test_frontend_and_proxy_share_the_trial_base_path(self) -> None:
         vite = (ROOT / "apps/web/vite.config.ts").read_text(encoding="utf-8")
+        api_client = (ROOT / "apps/web/src/api/client.ts").read_text(encoding="utf-8")
         client = (ROOT / "apps/web/src/api/client.test.ts").read_text(encoding="utf-8")
         nginx = (DEPLOY / "nginx-bizdevops.conf").read_text(encoding="utf-8")
         self.assertIn("VITE_BASE_PATH", vite)
+        self.assertIn("resolveDevelopmentUserId(import.meta.env.VITE_DEV_USER_ID)", api_client)
+        self.assertNotIn("import.meta.env.DEV ? import.meta.env.VITE_DEV_USER_ID", api_client)
         self.assertIn("resolveApiBaseUrl('/bizdevops/')", client)
         self.assertIn("location ^~ /bizdevops/api/", nginx)
         self.assertIn("location ^~ /bizdevops/", nginx)

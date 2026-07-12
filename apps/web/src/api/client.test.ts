@@ -1,10 +1,17 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ApiError, createApiClient, resolveApiBaseUrl } from './client'
+import { ApiError, createApiClient, resolveApiBaseUrl, resolveDevelopmentUserId } from './client'
 
 describe('API client', () => {
   it('resolves the API under a configured deployment base path', () => {
     expect(resolveApiBaseUrl('/bizdevops/')).toBe('/bizdevops/api/v1')
     expect(resolveApiBaseUrl('/')).toBe('/api/v1')
+  })
+
+  it('keeps an explicitly configured trial identity in production builds', () => {
+    expect(resolveDevelopmentUserId(' 10000000-0000-4000-8000-000000000001 '))
+      .toBe('10000000-0000-4000-8000-000000000001')
+    expect(resolveDevelopmentUserId('')).toBeUndefined()
+    expect(resolveDevelopmentUserId(undefined)).toBeUndefined()
   })
   it('sends JSON and unwraps the API envelope', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(
