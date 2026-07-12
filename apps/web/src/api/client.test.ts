@@ -189,6 +189,21 @@ describe('API client', () => {
     ])
   })
 
+  it('saves a scenario revision with PUT on the scoped scenario endpoint', async () => {
+    const transport = vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: {} }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    const client = createApiClient({ baseUrl: '/api/v1', transport })
+    const revision = {
+      name: '创建订单', description: '主链路', status: 'active' as const,
+      steps: [{ key: 'create', name: '创建订单', type: 'http' as const, dependsOn: [], requestConfig: { method: 'POST', path: '/orders' } }],
+    }
+
+    await client.updateScenario('system / A', 'scenario / 1', revision)
+
+    expect(transport).toHaveBeenCalledWith('/api/v1/systems/system%20%2F%20A/scenarios/scenario%20%2F%201', expect.objectContaining({
+      method: 'PUT', body: JSON.stringify(revision),
+    }))
+  })
+
   it('reads backend-authorized management overview projections', async () => {
     const transport = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ data: {} }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
     const client = createApiClient({ baseUrl: '/api/v1', transport })
@@ -218,6 +233,19 @@ describe('API client', () => {
       ['/api/v1/systems/system%20%2F%20A/environments', 'POST', JSON.stringify({ ...environment, id: 'env / 1', status: 'disabled' })],
       ['/api/v1/systems/system%20%2F%20A/environments/env%20%2F%201/secret-references', 'GET', undefined],
       ['/api/v1/systems/system%20%2F%20A/environments/env%20%2F%201/secret-references', 'POST', JSON.stringify(reference)],
+    ])
+  })
+
+  it('uses the owner-only system member endpoints', async () => {
+    const transport = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ data: [] }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    const client = createApiClient({ baseUrl: '/api/v1', transport })
+
+    await client.listSystemMembers('system / A')
+    await client.upsertSystemMember('system / A', { userId: 'user / 1', role: 'reviewer' })
+
+    expect(transport.mock.calls.map(([url, init]) => [url, init.method ?? 'GET', init.body])).toEqual([
+      ['/api/v1/systems/system%20%2F%20A/members', 'GET', undefined],
+      ['/api/v1/systems/system%20%2F%20A/members', 'POST', JSON.stringify({ userId: 'user / 1', role: 'reviewer' })],
     ])
   })
 })

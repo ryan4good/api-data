@@ -6,6 +6,7 @@ type Repository interface {
 	Promote(context.Context, string, string, string, string) (PromotionResult, error)
 	List(context.Context, string) ([]Scenario, error)
 	Get(context.Context, string, string) (Detail, bool, error)
+	Update(context.Context, string, string, string, UpdateRequest) (Detail, error)
 }
 type Service struct{ repository Repository }
 
@@ -18,4 +19,10 @@ func (s *Service) List(ctx context.Context, systemID string) ([]Scenario, error)
 }
 func (s *Service) Get(ctx context.Context, systemID, scenarioID string) (Detail, bool, error) {
 	return s.repository.Get(ctx, systemID, scenarioID)
+}
+func (s *Service) Update(ctx context.Context, systemID, scenarioID, userID string, input UpdateRequest) (Detail, error) {
+	if err := ValidateUpdate(input); err != nil {
+		return Detail{}, err
+	}
+	return s.repository.Update(ctx, systemID, scenarioID, userID, input)
 }

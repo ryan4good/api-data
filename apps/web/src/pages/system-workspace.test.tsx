@@ -55,6 +55,16 @@ describe('SystemWorkspaceView', () => {
     expect(html).toContain('执行场景')
   })
 
+  it('links real scenario records to their version editor', () => {
+    const html = renderToStaticMarkup(<MemoryRouter><SystemWorkspaceView state={{ status: 'ready', system: system('viewer') }} resources={{
+      scans: { status: 'ready', items: [] }, operations: { status: 'ready', items: [] }, imports: { status: 'ready', items: [] }, runs: { status: 'ready', items: [] },
+      scenarios: { status: 'ready', items: [{ id: '22222222-2222-4222-8222-222222222222', systemId: system('viewer').id, name: '创建订单', status: 'active' }] },
+    }} /></MemoryRouter>)
+
+    expect(html).toContain('/systems/11111111-1111-1111-1111-111111111111/editor/22222222-2222-4222-8222-222222222222')
+    expect(html).toContain('创建订单 · active')
+  })
+
   it('gives reviewers verification and runners execution without management actions', () => {
     const reviewer = render('reviewer')
     const runner = render('runner')

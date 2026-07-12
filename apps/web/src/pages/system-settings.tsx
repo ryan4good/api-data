@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { apiClient } from '../api/client'
-import type { CreateSecretReferenceInput, Environment, SecretReference, SystemRole, UpsertEnvironmentInput } from '../api/types'
+import type { CreateSecretReferenceInput, Environment, SecretReference, SystemMember, SystemRole, UpsertEnvironmentInput, UpsertSystemMemberInput } from '../api/types'
 import type { SystemContextState } from '../layouts/SystemLayout'
 
 export type EnvironmentState =
@@ -16,12 +16,19 @@ export type SecretReferenceState =
   | { status: 'empty' }
   | { status: 'ready'; items: SecretReference[] }
 
+export type MemberState =
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'empty' }
+  | { status: 'ready'; items: SystemMember[] }
+
 type ReferenceStates = Record<string, SecretReferenceState>
 type Feedback = { status: 'success' | 'error'; message: string } | undefined
 
 const sensitiveVariableWords = ['password', 'token', 'secret', 'credential', 'api_key', 'apikey']
 const externalSecretSchemes = ['vault://', 'secret://', 'aws-secrets://', 'gcp-secret://'] as const
 const canManage = (role: SystemRole) => role === 'owner' || role === 'maintainer'
+export const canManageMembers = (role: SystemRole) => role === 'owner'
 
 export function parseEnvironmentVariables(source: string): Record<string, string> {
   if (source.trim() === '') return {}
@@ -45,6 +52,8 @@ export function SystemSettingsPage() {
   const [state, setState] = useState<EnvironmentState>({ status: 'loading' })
   const [references, setReferences] = useState<ReferenceStates>({})
   const [feedback, setFeedback] = useState<Feedback>()
+  const [memberState, setMemberState] = useState<MemberState>({ status: 'loading' })
+  const [memberFeedback, setMemberFeedback] = useState<Feedback>()
 
   const loadReference = async (systemId: string, environmentId: string) => {
     setReferences((current) => ({ ...current, [environmentId]: { status: 'loading' } }))
@@ -69,9 +78,22 @@ export function SystemSettingsPage() {
     }
   }
 
+  const loadMembers = async (systemId: string) => {
+    setMemberState({ status: 'loading' })
+    try {
+      const items = await apiClient.listSystemMembers(systemId)
+      setMemberState(items.length === 0 ? { status: 'empty' } : { status: 'ready', items })
+    } catch (error) {
+      setMemberState({ status: 'error', message: error instanceof Error ? error.message : '成员加载失败' })
+    }
+  }
+
   useEffect(() => {
-    if (system) void loadEnvironments(system.id)
-  }, [system?.id])
+    if (!system) return
+    void loadEnvironments(system.id)
+    if (canManageMembers(system.myRole)) void loadMembers(system.id)
+    else setMemberState({ status: 'empty' })
+  }, [system?.id, system?.myRole])
 
   if (!system) {
     return <section className="page-card"><p>{context.status === 'error' ? '工作空间不可用' : '正在加载工作空间…'}</p></section>
@@ -99,7 +121,21 @@ export function SystemSettingsPage() {
     }
   }
 
-  return <EnvironmentSettingsView role={system.myRole} state={state} references={references} feedback={feedback} onUpsertEnvironment={upsertEnvironment} onCreateSecretReference={createSecretReference} />
+  const upsertMember = async (input: UpsertSystemMemberInput) => {
+    setMemberFeedback(undefined)
+    try {
+      await apiClient.upsertSystemMember(system.id, input)
+      setMemberFeedback({ status: 'success', message: '成员角色已保存' })
+      await loadMembers(system.id)
+    } catch (error) {
+      setMemberFeedback({ status: 'error', message: error instanceof Error ? error.message : '成员角色保存失败' })
+    }
+  }
+
+  return <>
+    <EnvironmentSettingsView role={system.myRole} state={state} references={references} feedback={feedback} onUpsertEnvironment={upsertEnvironment} onCreateSecretReference={createSecretReference} />
+    <MemberSettingsView role={system.myRole} state={memberState} feedback={memberFeedback} onUpsertMember={upsertMember} />
+  </>
 }
 
 export function EnvironmentSettingsView({ role, state, references, feedback, onUpsertEnvironment, onCreateSecretReference }: {
@@ -135,6 +171,64 @@ export function EnvironmentSettingsView({ role, state, references, feedback, onU
         </article>
       ))}
     </section>
+  )
+}
+
+export function MemberSettingsView({ role, state, feedback, onUpsertMember }: {
+  role: SystemRole
+  state: MemberState
+  feedback?: Feedback
+  onUpsertMember: (input: UpsertSystemMemberInput) => void | Promise<void>
+}) {
+  if (!canManageMembers(role)) {
+    return <section className="workspace-page"><div className="page-card"><h2>系统成员</h2><p>仅系统所有者可管理成员；当前角色无权读取成员目录。</p></div></section>
+  }
+  return (
+    <section className="workspace-page">
+      <header className="page-header"><div><small>访问控制</small><h2>系统成员</h2><p>添加已有平台用户，或更新其系统级角色。</p></div></header>
+      {feedback && <p className={feedback.status === 'error' ? 'error' : 'status'}>{feedback.message}</p>}
+      <MemberRoleForm title="添加或更新成员" submitLabel="保存成员" onSubmit={onUpsertMember} />
+      {state.status === 'loading' && <div className="page-card"><p>正在加载成员…</p></div>}
+      {state.status === 'error' && <div className="page-card"><p className="error">{state.message}</p></div>}
+      {state.status === 'empty' && <div className="page-card"><p>尚未配置成员</p></div>}
+      {state.status === 'ready' && <div className="page-card"><ul>{state.items.map((member) => (
+        <li key={member.userId}>
+          <strong>{member.displayName || member.userId}</strong>
+          {member.email && <> · {member.email}</>}
+          <> · {member.status === 'active' ? '已启用' : '已停用'}</>
+          <MemberRoleForm title="更新角色" submitLabel="更新角色" member={member} onSubmit={onUpsertMember} />
+        </li>
+      ))}</ul></div>}
+    </section>
+  )
+}
+
+const systemRoles: { value: SystemRole; label: string }[] = [
+  { value: 'owner', label: '所有者' },
+  { value: 'maintainer', label: '维护者' },
+  { value: 'reviewer', label: '审核者' },
+  { value: 'runner', label: '执行者' },
+  { value: 'viewer', label: '只读成员' },
+]
+
+function MemberRoleForm({ title, submitLabel, member, onSubmit }: {
+  title: string
+  submitLabel: string
+  member?: SystemMember
+  onSubmit: (input: UpsertSystemMemberInput) => void | Promise<void>
+}) {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const form = new FormData(event.currentTarget)
+    void onSubmit({ userId: String(form.get('userId') ?? '').trim(), role: String(form.get('role') ?? 'viewer') as SystemRole })
+  }
+  return (
+    <form className="settings-form" onSubmit={handleSubmit}>
+      <h3>{title}</h3>
+      <label>用户 ID<input name="userId" required readOnly={Boolean(member)} defaultValue={member?.userId} placeholder="用户 UUID" /></label>
+      <label>系统角色<select name="role" defaultValue={member?.role ?? 'viewer'}>{systemRoles.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+      <button type="submit">{submitLabel}</button>
+    </form>
   )
 }
 

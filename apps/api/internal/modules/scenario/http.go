@@ -17,6 +17,7 @@ type ScenarioHTTPService interface {
 	Promote(context.Context, string, string, string, string) (PromotionResult, error)
 	List(context.Context, string) ([]Scenario, error)
 	Get(context.Context, string, string) (Detail, bool, error)
+	Update(context.Context, string, string, string, UpdateRequest) (Detail, error)
 }
 type scenarioHandler struct {
 	service ScenarioHTTPService
@@ -40,12 +41,47 @@ func RegisterSystemRoutes(mux *http.ServeMux, service ScenarioHTTPService, roles
 		h.list(w, r)
 	})
 	mux.HandleFunc("/api/v1/systems/{systemId}/scenarios/{scenarioId}", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPut {
+			h.update(w, r)
+			return
+		}
 		if r.Method != http.MethodGet {
 			scenarioMethod(w)
 			return
 		}
 		h.get(w, r)
 	})
+}
+func (h *scenarioHandler) update(w http.ResponseWriter, r *http.Request) {
+	systemID, actor, ok := h.authorize(w, r, true)
+	if !ok {
+		return
+	}
+	scenarioID := r.PathValue("scenarioId")
+	if !scenarioUUIDPattern.MatchString(scenarioID) {
+		scenarioInvalid(w, "scenarioId must be a UUID")
+		return
+	}
+	var input UpdateRequest
+	if err := decodeScenarioJSON(w, r, &input); err != nil {
+		scenarioInvalid(w, "body must be a valid scenario revision")
+		return
+	}
+	detail, err := h.service.Update(r.Context(), systemID, scenarioID, actor.UserID, input)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrInvalidRevision):
+			scenarioInvalid(w, err.Error())
+		case errors.Is(err, ErrScenarioNotFound):
+			httpresponse.Failure(w, http.StatusNotFound, "scenario_not_found", "scenario was not found", nil)
+		case errors.Is(err, ErrRevisionConflict):
+			httpresponse.Failure(w, http.StatusConflict, "revision_conflict", "scenario changed while the revision was being saved", nil)
+		default:
+			scenarioInternal(w)
+		}
+		return
+	}
+	httpresponse.Success(w, http.StatusOK, detail)
 }
 func (h *scenarioHandler) promote(w http.ResponseWriter, r *http.Request) {
 	systemID, actor, ok := h.authorize(w, r, true)

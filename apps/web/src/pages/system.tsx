@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Link, useOutletContext, useParams } from 'react-router-dom'
+import { Link, useOutletContext } from 'react-router-dom'
 import { apiClient } from '../api/client'
 import type { ApiClient } from '../api/client'
 import type { ApiOperation, ScanRun, ScenarioImport, ScenarioRunDetail, ScenarioSummary, SystemRole } from '../api/types'
@@ -179,7 +179,7 @@ export function SystemWorkspaceView({ state, resources = emptyResources, mutatio
           browseLabel="查看场景列表"
           actions={capabilities.editScenarios ? <WorkspaceAction to={path('editor')}>创建场景</WorkspaceAction> : undefined}
         >
-          <ResourceStatus state={resources.scenarios} loading="正在加载业务场景…" empty="尚无业务场景" summary={(count) => `业务场景 ${count} 个`} item={(scenario) => `${scenario.name} · ${scenario.status}`} />
+          <ResourceStatus state={resources.scenarios} loading="正在加载业务场景…" empty="尚无业务场景" summary={(count) => `业务场景 ${count} 个`} item={(scenario) => <Link to={`${path('editor')}/${scenario.id}`}>{scenario.name} · {scenario.status}</Link>} />
         </WorkspaceCard>
         <WorkspaceCard
           title="执行与结果"
@@ -322,5 +322,4 @@ export function SystemOverviewPage() {
 }
 export const DiscoveryPage = () => <StaticPage title="场景发现" description="从调用关系、测试代码和接口语义生成可解释的场景候选。" action="生成候选" capability="manageAssets" />
 export const ReviewPage = () => <StaticPage title="待核验场景" description="集中处理候选场景、导入冲突和缺失的变量依赖。" action="人工核验" capability="reviewScenarios" />
-export function EditorPage() { const { scenarioId } = useParams(); return <StaticPage title="场景编排" description={scenarioId ? `正在编辑场景 ${scenarioId}。` : '以步骤、变量、断言和失败策略编排可执行场景。'} action="导入场景 JSON" capability="importScenarios" /> }
 export const RunsPage = () => <StaticPage title="运行记录" description="追踪场景执行状态、步骤日志、断言结果和脱敏后的请求响应。" action="立即执行" capability="runScenarios" />

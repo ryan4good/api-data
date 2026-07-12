@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
-import type { Environment } from '../api/types'
-import { EnvironmentSettingsView, parseEnvironmentVariables, validateExternalSecretReference } from './system-settings'
+import type { Environment, SystemMember } from '../api/types'
+import { canManageMembers, EnvironmentSettingsView, MemberSettingsView, parseEnvironmentVariables, validateExternalSecretReference } from './system-settings'
 
 const environment: Environment = {
   id: 'env-1', systemId: 'system-a', key: 'staging', name: '预发布', status: 'active',
@@ -66,5 +66,42 @@ describe('system settings environment page', () => {
     expect(validateExternalSecretReference('gcp-secret://name')).toBe(true)
     expect(validateExternalSecretReference('https://example.test/secret')).toBe(false)
     expect(validateExternalSecretReference('vault://')).toBe(false)
+  })
+})
+
+const members: SystemMember[] = [
+  { userId: 'user-1', displayName: '平台管理员', email: 'owner@example.test', role: 'owner', status: 'active' },
+  { userId: 'user-2', displayName: '发布审核员', role: 'reviewer', status: 'disabled' },
+]
+
+describe('system settings member management', () => {
+  it('loads members only for the system owner', () => {
+    expect(canManageMembers('owner')).toBe(true)
+    for (const role of ['maintainer', 'reviewer', 'runner', 'viewer'] as const) expect(canManageMembers(role)).toBe(false)
+  })
+
+  it('renders the real member identity, role and status for owners', () => {
+    const html = renderToStaticMarkup(<MemberSettingsView role="owner" state={{ status: 'ready', items: members }} onUpsertMember={noop} />)
+    expect(html).toContain('平台管理员')
+    expect(html).toContain('owner@example.test')
+    expect(html).toContain('发布审核员')
+    expect(html).toContain('已停用')
+    expect(html).toContain('更新角色')
+    expect(html).toContain('添加或更新成员')
+  })
+
+  it('shows honest loading, empty and error states', () => {
+    expect(renderToStaticMarkup(<MemberSettingsView role="owner" state={{ status: 'loading' }} onUpsertMember={noop} />)).toContain('正在加载成员')
+    expect(renderToStaticMarkup(<MemberSettingsView role="owner" state={{ status: 'empty' }} onUpsertMember={noop} />)).toContain('尚未配置成员')
+    expect(renderToStaticMarkup(<MemberSettingsView role="owner" state={{ status: 'error', message: '成员服务不可用' }} onUpsertMember={noop} />)).toContain('成员服务不可用')
+  })
+
+  it('does not expose member data or mutation controls to non-owners', () => {
+    for (const role of ['maintainer', 'reviewer', 'runner', 'viewer'] as const) {
+      const html = renderToStaticMarkup(<MemberSettingsView role={role} state={{ status: 'ready', items: members }} onUpsertMember={noop} />)
+      expect(html).toContain('仅系统所有者可管理成员')
+      expect(html).not.toContain('平台管理员')
+      expect(html).not.toContain('<form')
+    }
   })
 })

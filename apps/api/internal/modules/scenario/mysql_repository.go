@@ -18,6 +18,9 @@ const updateCurrentVersionSQL = `UPDATE scenarios SET current_version_id = ?, up
 const markCandidatePromotedSQL = `UPDATE scenario_candidates SET promoted_scenario_id = ?, updated_at = ? WHERE system_id = ? AND discovery_id = ? AND id = ? AND review_status = ? AND promoted_scenario_id IS NULL`
 const listScenariosSQL = `SELECT id, system_id, scenario_key, name, description, status, current_version_id, created_by, created_at, updated_at FROM scenarios WHERE system_id = ? ORDER BY scenario_key, id`
 const getScenarioSQL = `SELECT id, system_id, scenario_key, name, description, status, current_version_id, created_by, created_at, updated_at FROM scenarios WHERE system_id = ? AND id = ?`
+const lockScenarioSQL = `SELECT id, system_id, scenario_key, name, description, status, current_version_id, created_by, created_at, updated_at FROM scenarios WHERE system_id = ? AND id = ? FOR UPDATE`
+const nextVersionNoSQL = `SELECT COALESCE(MAX(version_no), 0) + 1 AS next_version_no FROM scenario_versions WHERE system_id = ? AND scenario_id = ?`
+const updateScenarioRevisionSQL = `UPDATE scenarios SET name = ?, description = NULLIF(?, ''), status = ?, current_version_id = ?, updated_at = ? WHERE system_id = ? AND id = ? AND current_version_id = ?`
 const getVersionSQL = `SELECT id, system_id, scenario_id, version_no, source_type, bundle_document, created_by, created_at FROM scenario_versions WHERE system_id = ? AND id = ?`
 const listStepsSQL = `SELECT id, system_id, scenario_version_id, step_key, name, position, step_type, api_operation_id, depends_on, request_config, created_at FROM scenario_steps WHERE system_id = ? AND scenario_version_id = ? ORDER BY position, id`
 
@@ -137,6 +140,84 @@ func (r *MySQLRepository) List(ctx context.Context, systemID string) ([]Scenario
 func (r *MySQLRepository) Get(ctx context.Context, systemID, scenarioID string) (Detail, bool, error) {
 	return getDetail(ctx, r.db, systemID, scenarioID)
 }
+func (r *MySQLRepository) Update(ctx context.Context, systemID, scenarioID, userID string, input UpdateRequest) (detail Detail, err error) {
+	if err = ValidateUpdate(input); err != nil {
+		return detail, err
+	}
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return detail, err
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+	current, err := scanScenario(tx.QueryRowContext(ctx, lockScenarioSQL, systemID, scenarioID))
+	if errors.Is(err, sql.ErrNoRows) {
+		return detail, ErrScenarioNotFound
+	}
+	if err != nil {
+		return detail, err
+	}
+	var versionNo int
+	if err = tx.QueryRowContext(ctx, nextVersionNoSQL, systemID, scenarioID).Scan(&versionNo); err != nil {
+		return detail, err
+	}
+	versionID, err := scenarioUUID()
+	if err != nil {
+		return detail, err
+	}
+	now := time.Now().UTC()
+	raw, err := json.Marshal(input)
+	if err != nil {
+		return detail, err
+	}
+	if _, err = tx.ExecContext(ctx, insertVersionSQL, versionID, systemID, scenarioID, versionNo, "manual", raw, userID, now); err != nil {
+		return detail, err
+	}
+	steps, err := makeManualSteps(systemID, versionID, input.Steps, now)
+	if err != nil {
+		return detail, err
+	}
+	for _, step := range steps {
+		depends, marshalErr := json.Marshal(step.DependsOn)
+		if marshalErr != nil {
+			return detail, marshalErr
+		}
+		if _, err = tx.ExecContext(ctx, insertStepSQL, step.ID, systemID, versionID, step.Key, step.Name, step.Position, step.Type, step.OperationID, depends, nullableJSON(step.RequestConfig), step.CreatedAt); err != nil {
+			return detail, err
+		}
+	}
+	result, err := tx.ExecContext(ctx, updateScenarioRevisionSQL, input.Name, input.Description, input.Status, versionID, now, systemID, scenarioID, current.CurrentVersionID)
+	if err != nil {
+		return detail, err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return detail, err
+	}
+	if affected != 1 {
+		return detail, ErrRevisionConflict
+	}
+	if err = tx.Commit(); err != nil {
+		return detail, err
+	}
+	current.Name = input.Name
+	current.Description = input.Description
+	current.Status = input.Status
+	current.CurrentVersionID = versionID
+	current.UpdatedAt = now
+	version := Version{ID: versionID, SystemID: systemID, ScenarioID: scenarioID, VersionNo: versionNo, SourceType: "manual", BundleDocument: raw, CreatedBy: userID, CreatedAt: now}
+	return Detail{Scenario: current, Version: version, Steps: steps}, nil
+}
+
+func nullableJSON(raw []byte) any {
+	if len(raw) == 0 {
+		return nil
+	}
+	return raw
+}
 
 type queryer interface {
 	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
@@ -210,11 +291,12 @@ func scanVersion(r row) (Version, error) {
 func scanStep(r row) (Step, error) {
 	var s Step
 	var op sql.NullString
-	var depends []byte
-	if err := r.Scan(&s.ID, &s.SystemID, &s.VersionID, &s.Key, &s.Name, &s.Position, &s.Type, &op, &depends, &s.RequestConfig, &s.CreatedAt); err != nil {
+	var depends, requestConfig []byte
+	if err := r.Scan(&s.ID, &s.SystemID, &s.VersionID, &s.Key, &s.Name, &s.Position, &s.Type, &op, &depends, &requestConfig, &s.CreatedAt); err != nil {
 		return s, err
 	}
 	s.OperationID = op.String
+	s.RequestConfig = append(json.RawMessage(nil), requestConfig...)
 	if len(depends) > 0 {
 		_ = json.Unmarshal(depends, &s.DependsOn)
 	}

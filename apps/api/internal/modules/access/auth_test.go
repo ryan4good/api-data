@@ -41,7 +41,7 @@ func TestLoginIssuesVerifiableBearerForActiveUser(t *testing.T) {
 	}
 	claims := jwt.MapClaims{}
 	token, err := jwt.ParseWithClaims(result.AccessToken, claims, func(*jwt.Token) (any, error) { return []byte("unit-test-signing-key"), nil },
-		jwt.WithValidMethods([]string{"HS256"}), jwt.WithIssuer("bizdevops"), jwt.WithAudience("bizdevops-api"), jwt.WithExpirationRequired())
+		jwt.WithValidMethods([]string{"HS256"}), jwt.WithIssuer("bizdevops"), jwt.WithAudience("bizdevops-api"), jwt.WithExpirationRequired(), jwt.WithTimeFunc(func() time.Time { return now }))
 	if err != nil || !token.Valid {
 		t.Fatalf("token parse error=%v valid=%v", err, token != nil && token.Valid)
 	}

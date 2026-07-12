@@ -33,6 +33,19 @@ export interface BusinessSystem {
   updatedAt: IsoDateTime
 }
 
+export interface SystemMember {
+  userId: Identifier
+  displayName: string
+  email?: string
+  role: SystemRole
+  status: 'active' | 'disabled'
+}
+
+export interface UpsertSystemMemberInput {
+  userId: Identifier
+  role: SystemRole
+}
+
 export type EnvironmentStatus = 'active' | 'disabled'
 
 export interface Environment {
@@ -171,7 +184,27 @@ export interface ScenarioStep {
   type: string
   operationId?: Identifier
   dependsOn: string[]
+  requestConfig?: Record<string, unknown>
   createdAt: IsoDateTime
+}
+
+export type ScenarioStatus = 'draft' | 'active' | 'archived'
+export type ScenarioStepType = 'http' | 'script' | 'delay'
+
+export interface UpdateScenarioStepInput {
+  key: string
+  name: string
+  type: ScenarioStepType
+  operationId?: Identifier
+  dependsOn: string[]
+  requestConfig?: Record<string, unknown>
+}
+
+export interface UpdateScenarioInput {
+  name: string
+  description: string
+  status: ScenarioStatus
+  steps: UpdateScenarioStepInput[]
 }
 
 export interface ScenarioDetail {

@@ -1,9 +1,11 @@
 import { Navigate, type RouteObject } from 'react-router-dom'
 import { GlobalLayout } from './layouts/GlobalLayout'
 import { SystemLayout } from './layouts/SystemLayout'
-import { SystemsPage, GlobalRunDetailPage, GlobalRunsPage, GlobalSettingsPage } from './pages/global'
+import { SystemsPage, GlobalSettingsPage } from './pages/global'
+import { GlobalRunDetailPage, GlobalRunsPage } from './pages/global-runs'
 import { ManagementDashboardPage } from './pages/management'
-import { EditorPage, SystemOverviewPage } from './pages/system'
+import { SystemOverviewPage } from './pages/system'
+import { ScenarioEditorPage } from './pages/scenario-editor'
 import { ScanPage } from './pages/scan'
 import { ApiAssetsPage } from './pages/api-assets'
 import { SystemSettingsPage } from './pages/system-settings'
@@ -45,8 +47,8 @@ export const routes: RouteObject[] = [
           { path: 'apis', element: <ApiAssetsPage /> },
           { path: 'discovery', element: <DiscoveryPage /> },
           { path: 'review', element: <ReviewPage /> },
-          { path: 'editor', element: <EditorPage /> },
-          { path: 'editor/:scenarioId', element: <EditorPage /> },
+          { path: 'editor', element: <ScenarioEditorPage /> },
+          { path: 'editor/:scenarioId', element: <ScenarioEditorPage /> },
           { path: 'runs', element: <RunsPage /> },
           { path: 'runs/:runId', element: <RunDetailPage /> },
           { path: 'settings', element: <SystemSettingsPage /> },

@@ -85,6 +85,59 @@ func (r *MemoryRepository) Get(_ context.Context, systemID, scenarioID string) (
 	d, ok := r.details[key(systemID, scenarioID)]
 	return d, ok, nil
 }
+func (r *MemoryRepository) Update(_ context.Context, systemID, scenarioID, userID string, input UpdateRequest) (Detail, error) {
+	if err := ValidateUpdate(input); err != nil {
+		return Detail{}, err
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	k := key(systemID, scenarioID)
+	current, ok := r.details[k]
+	if !ok {
+		return Detail{}, ErrScenarioNotFound
+	}
+	versionID, err := scenarioUUID()
+	if err != nil {
+		return Detail{}, err
+	}
+	now := time.Now().UTC()
+	raw, err := json.Marshal(input)
+	if err != nil {
+		return Detail{}, err
+	}
+	steps, err := makeManualSteps(systemID, versionID, input.Steps, now)
+	if err != nil {
+		return Detail{}, err
+	}
+	updatedScenario := current.Scenario
+	updatedScenario.Name = input.Name
+	updatedScenario.Description = input.Description
+	updatedScenario.Status = input.Status
+	updatedScenario.CurrentVersionID = versionID
+	updatedScenario.UpdatedAt = now
+	version := Version{ID: versionID, SystemID: systemID, ScenarioID: scenarioID, VersionNo: current.Version.VersionNo + 1, SourceType: "manual", BundleDocument: raw, CreatedBy: userID, CreatedAt: now}
+	detail := Detail{Scenario: updatedScenario, Version: version, Steps: steps}
+	r.scenarios[k] = updatedScenario
+	r.details[k] = detail
+	return detail, nil
+}
+
+func makeManualSteps(systemID, versionID string, inputs []UpdateStep, now time.Time) ([]Step, error) {
+	out := make([]Step, 0, len(inputs))
+	for i, input := range inputs {
+		id, err := scenarioUUID()
+		if err != nil {
+			return nil, err
+		}
+		depends := append([]string(nil), input.DependsOn...)
+		requestConfig := append([]byte(nil), input.RequestConfig...)
+		if len(requestConfig) == 0 || string(requestConfig) == "null" {
+			requestConfig = nil
+		}
+		out = append(out, Step{ID: id, SystemID: systemID, VersionID: versionID, Key: input.Key, Name: input.Name, Position: i + 1, Type: input.Type, OperationID: input.OperationID, DependsOn: depends, RequestConfig: requestConfig, CreatedAt: now})
+	}
+	return out, nil
+}
 func makeSteps(systemID, versionID string, b discovery.CandidateBundle, now time.Time) ([]Step, error) {
 	out := make([]Step, 0, len(b.Steps))
 	for i, s := range b.Steps {
