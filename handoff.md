@@ -11,7 +11,7 @@
 - API systemd：`bizdevops-api.service`
 - OMS Worker：`bizdevops-worker@20000000-0000-4000-8000-000000000001.service`
 - 当前公网入口仍为 HTTP `:8080`，Nginx Basic Auth 保持启用。
-- 当前线上 API 仍为 `AUTH_MODE=development`，API/Web release 为 `20260712164546-functional`。
+- 当前线上 API 仍为 `AUTH_MODE=development`；API/Worker release 为 `20260712164546-functional`，Web release 为 `20260712170231-settings-layout`。
 - 最新 Web bundle 不包含 development 用户 ID；Nginx 在受 Basic Auth 保护的 BizDevOps API location 内覆盖注入固定试运行身份。正式登录代码尚未切换到公网服务。
 
 正式登录/JWT 代码、前端登录页、Cookie 会话、部署模板和测试已经完成。由于入口尚无 TLS，按安全边界不得把正式密码登录切到公网 HTTP；下一阶段必须先完成 HTTPS/TLS。
@@ -29,6 +29,7 @@
   - `f3ccec5 feat: complete system operational pages`
   - `99ef5ad feat: refine scenario and operations workflows`
   - `b3e5b34 feat: add managed code sources`
+  - `45c5801 fix: restore system settings layout`
 
 本轮正式认证变更包括：
 
@@ -103,7 +104,7 @@ Nginx Basic Auth 与 Bearer JWT 都使用 `Authorization` Header。浏览器无�
 
 - API：`go test -count=1 ./...` 通过。
 - API：`go vet ./...` 通过。
-- Web：19 个测试文件、96 项测试通过。
+- Web：20 个测试文件、97 项测试通过。
 - Web：`VITE_BASE_PATH=/bizdevops/` 且不设置 `VITE_DEV_USER_ID` 的生产构建通过。
 - 部署契约覆盖 JWT 必需配置、安全 Cookie、禁止 Web Storage token、登录限流、TLS 门禁和回滚。
 - 场景人工修订覆盖 RBAC、跨系统隔离、严格 JSON、依赖 DAG、MySQL 事务/CAS 和 `requestConfig` JSON 对象序列化。
@@ -144,6 +145,7 @@ staging unit、env、Cookie jar、临时 release 已清理，测试用户原 pas
 - 当前 `/bizdevops/` 仍受 Basic Auth 保护；未认证请求为 401。
 - API/Web 已原子切换到 `20260712164546-functional`；代码源、环境和成员 API 均在真实 MariaDB 上返回 200。
 - 新 Web 资源包含代码源/系统设置功能，旧“当前系统暂无系统设置数据”占位文案已不存在。
+- 系统设置无样式的根因是组件引用了未定义的 `settings-page/workspace-page/page-card/settings-form` class；现已补页面容器、卡片、表单栅格、输入控件和 900px 响应式契约测试，并部署独立 Web 修复 release。
 - Nginx 仅在 `/bizdevops/api/` 反代中覆盖 `X-Dev-User-ID`，因此浏览器 bundle 不携带试运行身份，客户端也不能伪造其他用户。
 - `SCANNER_ALLOWED_ROOTS` 当前未配置，本地扫描按 deny-all 设计拒绝执行；登记和选择代码源不受影响。
 
@@ -183,7 +185,7 @@ staging unit、env、Cookie jar、临时 release 已清理，测试用户原 pas
 - API 切换失败：恢复旧 env、旧 binary symlink，重启 BizDevOps API。
 - Web 切换失败：恢复 `/var/www/bizdevops` 旧 symlink。
 - Nginx 失败：恢复全部备份，`nginx -t` 后 reload。
-- 本次功能 release 的直接回滚目标：API/Worker bin `/opt/bizdevops/releases/20260712031205/bin`，Web `/opt/bizdevops/releases/20260712033413-identity-hotfix/web`，Nginx 备份 `/etc/nginx/snippets/bizdevops.conf.bak.20260712164546-functional`。
+- 当前 Web 修复的直接回滚目标为 `/opt/bizdevops/releases/20260712164546-functional/web`；API/Worker bin 的前一目标仍为 `/opt/bizdevops/releases/20260712031205/bin`，Nginx 备份为 `/etc/nginx/snippets/bizdevops.conf.bak.20260712164546-functional`。
 - 切换正式 JWT 时必须移除当前 Nginx development identity Header，不能让它与 JWT 模式并存。
 - 数据库 password hash 切换失败：通过 stdin 恢复旧 hash；不得把 hash 或明文密码写入日志。
 - 不得停止、覆盖或重启 stock-analyzer、ai-data-mvp、rent-platform，也不得触碰 80 端口现有 Go 程序。
@@ -199,15 +201,16 @@ staging unit、env、Cookie jar、临时 release 已清理，测试用户原 pas
 - `docs/progress/code-source-management.md`
 - `docs/progress/root-end-to-end-scenario.md`
 - `docs/progress/root-operations-integration.md`
+- `docs/progress/platform-governance-pages.md`
 - `deploy/tencent/README.md`
 
 ## 10. 产品后续
 
 TLS 与正式登录上线后，优先继续：
 
-1. audit event 写入器和管理端审计页。
+1. 将 audit event 写入器继续接入场景、扫描、环境和代码源等既有写操作，并实现保留策略清理任务；管理端审计页和首批平台治理写事件已完成。
 2. Vault/AWS/GCP SecretProvider adapter。
 3. 多 Worker 并发 E2E、容量限制、指标与告警。
-4. 密码重置、管理员用户管理、多因素认证或外部 IdP/OIDC。
-5. 为平台设置和新建业务系统设计 platform admin/auditor 服务端授权与写接口，再替换当前诚实占位说明。
+4. 自助密码找回、多因素认证或外部 IdP/OIDC；管理员用户管理和管理员直接设置新密码已完成。
+5. 平台设置和新建业务系统的 platform admin/auditor 授权与写接口已完成；下一步补平台策略扩展与配额治理。
 6. 实现 Git 代码源的受控 clone/fetch workspace、仓库 host allowlist、外部凭据 Provider 和清理策略。

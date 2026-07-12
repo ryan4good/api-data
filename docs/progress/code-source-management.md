@@ -34,11 +34,12 @@
 
 ## 腾讯云试运行部署
 
-- API/Web 已切换到 release `20260712164546-functional`，API、Worker、Nginx、MariaDB 均 active。
+- API/Worker 已切换到 `20260712164546-functional`；Web 在修复系统设置样式契约后切换到 `20260712170231-settings-layout`。API、Worker、Nginx、MariaDB 均 active。
 - 由于公网仍无可信 TLS，API 继续使用 `AUTH_MODE=development`，Basic Auth 保持启用，正式 JWT 登录未公开切换。
 - 最新 Web bundle 不含 development 用户 ID；Nginx 在受 Basic Auth 保护的 `/bizdevops/api/` location 覆盖注入固定试运行身份，避免客户端携带或伪造身份 Header。
 - `deploy/tencent/api.env.example` 只新增空的 `SCANNER_ALLOWED_ROOTS=`，未写入真实服务器路径或秘密。
 - 远端当前未配置扫描允许根，因此本地扫描按设计拒绝执行；配置时必须由服务器运维者设置最小化目录范围。
 - Git 源当前可登记、选择并创建追踪记录，但不能执行；后续需实现受控 clone/fetch、host allowlist、凭据 Provider、版本固定和工作区清理。
 - 远端 smoke test：系统、代码源、环境和成员 API 均为 200；未认证 `/bizdevops/` 为 401；原 `/`、`/api`、`/ai-data/` 分别保持 200/404/200。
+- 样式故障根因是新设置组件使用的页面、卡片和表单 class 未在主样式表定义；新增直接读取 CSS 的契约测试，防止只验证 HTML 文案而漏掉视觉退化。
 - 回滚目标：bin `20260712031205`、Web `20260712033413-identity-hotfix`，Nginx 已保存带 release 标识的备份。
