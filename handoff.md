@@ -11,7 +11,7 @@
 - API systemd：`bizdevops-api.service`
 - OMS Worker：`bizdevops-worker@20000000-0000-4000-8000-000000000001.service`
 - 当前公网入口仍为 HTTP `:8080`，Nginx Basic Auth 保持启用。
-- 当前线上 API 仍为 `AUTH_MODE=development`；API/Worker release 为 `20260712164546-functional`，Web release 为 `20260712170231-settings-layout`。
+- 当前线上 API 仍为 `AUTH_MODE=development`；API/Worker release 为 `20260712164546-functional`，Web release 为 `20260712171546-two-level-nav`。
 - 最新 Web bundle 不包含 development 用户 ID；Nginx 在受 Basic Auth 保护的 BizDevOps API location 内覆盖注入固定试运行身份。正式登录代码尚未切换到公网服务。
 
 正式登录/JWT 代码、前端登录页、Cookie 会话、部署模板和测试已经完成。由于入口尚无 TLS，按安全边界不得把正式密码登录切到公网 HTTP；下一阶段必须先完成 HTTPS/TLS。
@@ -30,6 +30,7 @@
   - `99ef5ad feat: refine scenario and operations workflows`
   - `b3e5b34 feat: add managed code sources`
   - `45c5801 fix: restore system settings layout`
+  - `b835104 feat: add two-level system navigation`
 
 本轮正式认证变更包括：
 
@@ -56,6 +57,7 @@
 - 扫描执行不再接受浏览器提交的服务器路径，只从 system-scoped 代码源解析。
 - 本地扫描受 `SCANNER_ALLOWED_ROOTS`、真实目录和符号链接边界约束；空 allowlist 默认拒绝全部执行。
 - Git 代码源在受控 checkout workspace 未实现前只可登记和创建追踪记录，不能直接执行。
+- 单系统侧栏已改为两级导航：工作台、资产管理、场景管理、执行中心、系统管理；代码源、环境与密钥、成员与权限均为独立二级页。
 
 敏感文件 `docs/tencent.txt` 已由 `.gitignore` 精确忽略。绝不能输出内容、暂存或提交。所有 shell 命令仍必须按 `C:\Users\ryanf\.codex\RTK.md` 以 `rtk` 开头。
 
@@ -104,7 +106,7 @@ Nginx Basic Auth 与 Bearer JWT 都使用 `Authorization` Header。浏览器无�
 
 - API：`go test -count=1 ./...` 通过。
 - API：`go vet ./...` 通过。
-- Web：20 个测试文件、97 项测试通过。
+- Web：22 个测试文件、103 项测试通过。
 - Web：`VITE_BASE_PATH=/bizdevops/` 且不设置 `VITE_DEV_USER_ID` 的生产构建通过。
 - 部署契约覆盖 JWT 必需配置、安全 Cookie、禁止 Web Storage token、登录限流、TLS 门禁和回滚。
 - 场景人工修订覆盖 RBAC、跨系统隔离、严格 JSON、依赖 DAG、MySQL 事务/CAS 和 `requestConfig` JSON 对象序列化。
@@ -146,6 +148,7 @@ staging unit、env、Cookie jar、临时 release 已清理，测试用户原 pas
 - API/Web 已原子切换到 `20260712164546-functional`；代码源、环境和成员 API 均在真实 MariaDB 上返回 200。
 - 新 Web 资源包含代码源/系统设置功能，旧“当前系统暂无系统设置数据”占位文案已不存在。
 - 系统设置无样式的根因是组件引用了未定义的 `settings-page/workspace-page/page-card/settings-form` class；现已补页面容器、卡片、表单栅格、输入控件和 900px 响应式契约测试，并部署独立 Web 修复 release。
+- 两级导航 release 已上线；远端资源包含“资产管理”“系统管理”和分组样式，旧 `/systems/{id}/settings` 兼容跳转到环境与密钥页。
 - Nginx 仅在 `/bizdevops/api/` 反代中覆盖 `X-Dev-User-ID`，因此浏览器 bundle 不携带试运行身份，客户端也不能伪造其他用户。
 - `SCANNER_ALLOWED_ROOTS` 当前未配置，本地扫描按 deny-all 设计拒绝执行；登记和选择代码源不受影响。
 
@@ -185,7 +188,7 @@ staging unit、env、Cookie jar、临时 release 已清理，测试用户原 pas
 - API 切换失败：恢复旧 env、旧 binary symlink，重启 BizDevOps API。
 - Web 切换失败：恢复 `/var/www/bizdevops` 旧 symlink。
 - Nginx 失败：恢复全部备份，`nginx -t` 后 reload。
-- 当前 Web 修复的直接回滚目标为 `/opt/bizdevops/releases/20260712164546-functional/web`；API/Worker bin 的前一目标仍为 `/opt/bizdevops/releases/20260712031205/bin`，Nginx 备份为 `/etc/nginx/snippets/bizdevops.conf.bak.20260712164546-functional`。
+- 当前 Web 两级导航 release 的直接回滚目标为 `/opt/bizdevops/releases/20260712170231-settings-layout/web`；API/Worker bin 的前一目标仍为 `/opt/bizdevops/releases/20260712031205/bin`，Nginx 备份为 `/etc/nginx/snippets/bizdevops.conf.bak.20260712164546-functional`。
 - 切换正式 JWT 时必须移除当前 Nginx development identity Header，不能让它与 JWT 模式并存。
 - 数据库 password hash 切换失败：通过 stdin 恢复旧 hash；不得把 hash 或明文密码写入日志。
 - 不得停止、覆盖或重启 stock-analyzer、ai-data-mvp、rent-platform，也不得触碰 80 端口现有 Go 程序。
@@ -202,6 +205,7 @@ staging unit、env、Cookie jar、临时 release 已清理，测试用户原 pas
 - `docs/progress/root-end-to-end-scenario.md`
 - `docs/progress/root-operations-integration.md`
 - `docs/progress/platform-governance-pages.md`
+- `docs/progress/two-level-system-navigation.md`
 - `deploy/tencent/README.md`
 
 ## 10. 产品后续
