@@ -1,0 +1,190 @@
+openapi: 3.1.0
+info:
+  title: API Data Platform - System & Access API
+  version: 0.1.0
+servers:
+  - url: /api/v1
+paths:
+  /systems:
+    get:
+      operationId: listAuthorizedSystems
+      summary: 查询当前用户有权访问的业务系统
+      responses:
+        '200':
+          description: Authorized systems
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemListEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      operationId: createSystem
+      summary: 注册业务系统
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSystemRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemEnvelope'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /systems/{systemId}:
+    parameters:
+      - $ref: '#/components/parameters/SystemId'
+    get:
+      operationId: getAuthorizedSystem
+      summary: 查询授权范围内的业务系统详情
+      responses:
+        '200':
+          description: System detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemEnvelope'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /systems/{systemId}/members:
+    parameters:
+      - $ref: '#/components/parameters/SystemId'
+    get:
+      operationId: listSystemMembers
+      summary: 查询系统成员
+      responses:
+        '200':
+          description: Members
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberListEnvelope'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: addSystemMember
+      summary: 添加或更新系统成员
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertMemberRequest'
+      responses:
+        '200':
+          description: Member updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberEnvelope'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+components:
+  parameters:
+    SystemId:
+      name: systemId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    SystemRole:
+      type: string
+      enum: [owner, maintainer, reviewer, runner, viewer]
+    BusinessSystem:
+      type: object
+      additionalProperties: false
+      required: [id, code, name, status, myRole, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string, pattern: '^[a-z][a-z0-9_-]{1,63}$' }
+        name: { type: string, minLength: 1, maxLength: 128 }
+        description: { type: string, maxLength: 1000 }
+        status: { type: string, enum: [active, archived] }
+        myRole: { $ref: '#/components/schemas/SystemRole' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    SystemMember:
+      type: object
+      additionalProperties: false
+      required: [userId, displayName, role, status]
+      properties:
+        userId: { type: string, format: uuid }
+        displayName: { type: string }
+        email: { type: string, format: email }
+        role: { $ref: '#/components/schemas/SystemRole' }
+        status: { type: string, enum: [active, disabled] }
+    CreateSystemRequest:
+      type: object
+      additionalProperties: false
+      required: [code, name]
+      properties:
+        code: { type: string }
+        name: { type: string }
+        description: { type: string }
+    UpsertMemberRequest:
+      type: object
+      additionalProperties: false
+      required: [userId, role]
+      properties:
+        userId: { type: string, format: uuid }
+        role: { $ref: '#/components/schemas/SystemRole' }
+    SystemEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/BusinessSystem' }
+    SystemListEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/BusinessSystem' }
+    MemberEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/SystemMember' }
+    MemberListEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/SystemMember' }
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            requestId: { type: string }
+            details: {}
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Forbidden:
+      description: Insufficient system role
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    NotFound:
+      description: Not found or outside the caller data scope
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+

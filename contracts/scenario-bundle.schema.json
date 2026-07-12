@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bizdevops.local/contracts/scenario-bundle.schema.json",
+  "title": "BizDevOps Scenario Bundle",
+  "description": "Lossless exchange format for an executable business scenario. Secrets are references, never values.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "exportedAt", "system", "scenario"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "exportedAt": { "type": "string", "format": "date-time" },
+    "system": { "$ref": "#/$defs/system" },
+    "scenario": { "$ref": "#/$defs/scenario" },
+    "extensions": { "type": "object", "additionalProperties": true }
+  },
+  "$defs": {
+    "key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z][A-Za-z0-9._-]*$"
+    },
+    "system": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "name"],
+      "properties": {
+        "key": { "$ref": "#/$defs/key" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 128 }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "name", "version", "variables", "steps"],
+      "properties": {
+        "key": { "$ref": "#/$defs/key" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "description": { "type": "string", "maxLength": 4000 },
+        "version": { "type": "integer", "minimum": 1 },
+        "variables": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/variable" },
+          "default": []
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/step" }
+        },
+        "extensions": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "variable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "scope", "sensitive"],
+      "properties": {
+        "key": { "$ref": "#/$defs/key" },
+        "scope": { "enum": ["scenario", "environment"] },
+        "value": {},
+        "secretRef": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "sensitive": { "type": "boolean" },
+        "description": { "type": "string", "maxLength": 512 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "sensitive": { "const": true } }, "required": ["sensitive"] },
+          "then": { "required": ["secretRef"], "not": { "required": ["value"] } }
+        },
+        {
+          "if": { "properties": { "sensitive": { "const": false } }, "required": ["sensitive"] },
+          "then": { "not": { "required": ["secretRef"] } }
+        }
+      ]
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "name", "type", "dependsOn", "timeoutMs", "failurePolicy"],
+      "properties": {
+        "key": { "$ref": "#/$defs/key" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "type": { "enum": ["http", "script", "delay"] },
+        "dependsOn": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/key" },
+          "uniqueItems": true,
+          "default": []
+        },
+        "timeoutMs": { "type": "integer", "minimum": 1, "maximum": 600000 },
+        "failurePolicy": { "enum": ["stop", "continue"] },
+        "apiOperationRef": { "$ref": "#/$defs/apiOperationRef" },
+        "request": { "$ref": "#/$defs/request" },
+        "script": { "$ref": "#/$defs/script" },
+        "delayMs": { "type": "integer", "minimum": 0, "maximum": 600000 },
+        "extractors": { "type": "array", "items": { "$ref": "#/$defs/extractor" }, "default": [] },
+        "assertions": { "type": "array", "items": { "$ref": "#/$defs/assertion" }, "default": [] },
+        "extensions": { "type": "object", "additionalProperties": true }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "http" } }, "required": ["type"] },
+          "then": { "required": ["request"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "script" } }, "required": ["type"] },
+          "then": { "required": ["script"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "delay" } }, "required": ["type"] },
+          "then": { "required": ["delayMs"] }
+        }
+      ]
+    },
+    "apiOperationRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operationKey"],
+      "properties": {
+        "operationKey": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "contentHash": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" }
+      }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["connectorRef", "method", "url"],
+      "properties": {
+        "connectorRef": { "$ref": "#/$defs/key" },
+        "method": { "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "TRACE"] },
+        "url": { "type": "string", "minLength": 1, "maxLength": 2048 },
+        "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+        "query": { "type": "object", "additionalProperties": { "type": ["string", "number", "boolean", "null"] } },
+        "body": {},
+        "authRef": { "type": "string", "minLength": 1, "maxLength": 255 }
+      }
+    },
+    "script": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "source"],
+      "properties": {
+        "language": { "enum": ["javascript"] },
+        "source": { "type": "string" },
+        "requiresReview": { "type": "boolean", "default": false }
+      }
+    },
+    "extractor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "source", "expression"],
+      "properties": {
+        "key": { "$ref": "#/$defs/key" },
+        "source": { "enum": ["status", "header", "json_body", "text_body"] },
+        "expression": { "type": "string", "minLength": 1 },
+        "required": { "type": "boolean", "default": true }
+      }
+    },
+    "assertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "type", "operator", "actual"],
+      "properties": {
+        "key": { "$ref": "#/$defs/key" },
+        "type": { "enum": ["status", "header", "json_body", "text_body", "duration"] },
+        "operator": { "enum": ["eq", "ne", "contains", "matches", "exists", "lt", "lte", "gt", "gte"] },
+        "actual": { "type": "string", "minLength": 1 },
+        "expected": {},
+        "message": { "type": "string", "maxLength": 512 }
+      }
+    }
+  }
+}

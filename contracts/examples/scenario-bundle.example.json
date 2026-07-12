@@ -1,0 +1,100 @@
+{
+  "schemaVersion": "1.0",
+  "exportedAt": "2026-07-11T08:00:00Z",
+  "system": {
+    "key": "oms",
+    "name": "订单中心"
+  },
+  "scenario": {
+    "key": "order-create-and-approve",
+    "name": "订单创建与审核",
+    "description": "创建订单并验证审核后的状态。",
+    "version": 1,
+    "variables": [
+      {
+        "key": "customerId",
+        "scope": "scenario",
+        "value": "C10001",
+        "sensitive": false
+      },
+      {
+        "key": "accessToken",
+        "scope": "environment",
+        "secretRef": "vault://oms/test/access-token",
+        "sensitive": true
+      }
+    ],
+    "steps": [
+      {
+        "key": "create-order",
+        "name": "创建订单",
+        "type": "http",
+        "dependsOn": [],
+        "timeoutMs": 30000,
+        "failurePolicy": "stop",
+        "apiOperationRef": {
+          "operationKey": "POST /api/orders"
+        },
+        "request": {
+          "connectorRef": "oms-http",
+          "method": "POST",
+          "url": "/api/orders",
+          "headers": {
+            "Authorization": "Bearer {{accessToken}}",
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "customerId": "{{customerId}}",
+            "items": [{ "sku": "SKU-001", "quantity": 1 }]
+          }
+        },
+        "extractors": [
+          {
+            "key": "orderId",
+            "source": "json_body",
+            "expression": "$.data.id",
+            "required": true
+          }
+        ],
+        "assertions": [
+          {
+            "key": "created-status",
+            "type": "status",
+            "operator": "eq",
+            "actual": "$status",
+            "expected": 201
+          }
+        ]
+      },
+      {
+        "key": "approve-order",
+        "name": "审核订单",
+        "type": "http",
+        "dependsOn": ["create-order"],
+        "timeoutMs": 30000,
+        "failurePolicy": "stop",
+        "apiOperationRef": {
+          "operationKey": "POST /api/orders/{orderId}/approve"
+        },
+        "request": {
+          "connectorRef": "oms-http",
+          "method": "POST",
+          "url": "/api/orders/{{orderId}}/approve",
+          "headers": {
+            "Authorization": "Bearer {{accessToken}}"
+          }
+        },
+        "extractors": [],
+        "assertions": [
+          {
+            "key": "approved-state",
+            "type": "json_body",
+            "operator": "eq",
+            "actual": "$.data.status",
+            "expected": "APPROVED"
+          }
+        ]
+      }
+    ]
+  }
+}

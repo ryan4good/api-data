@@ -1,0 +1,27 @@
+name: bizdevops-dev
+
+services:
+  mysql:
+    image: mysql:8.0.36
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-local-root-password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-bizdevops}
+      MYSQL_USER: ${MYSQL_USER:-bizdevops}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-local-app-password}
+      TZ: UTC
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ../../db/migrations/000001_initial.up.sql:/docker-entrypoint-initdb.d/10-schema.sql:ro
+      - ../../db/seeds/000001_development.sql:/docker-entrypoint-initdb.d/20-development-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
