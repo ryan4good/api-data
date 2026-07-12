@@ -11,8 +11,8 @@
 - API systemd：`bizdevops-api.service`
 - OMS Worker：`bizdevops-worker@20000000-0000-4000-8000-000000000001.service`
 - 当前公网入口仍为 HTTP `:8080`，Nginx Basic Auth 保持启用。
-- 当前线上 API 仍为 `AUTH_MODE=development`，Web release 为 `20260712033413-identity-hotfix`。
-- 当前线上修复已确保生产 bundle 发送试运行 `X-Dev-User-ID`；正式登录代码尚未切换到公网服务。
+- 当前线上 API 仍为 `AUTH_MODE=development`，API/Web release 为 `20260712164546-functional`。
+- 最新 Web bundle 不包含 development 用户 ID；Nginx 在受 Basic Auth 保护的 BizDevOps API location 内覆盖注入固定试运行身份。正式登录代码尚未切换到公网服务。
 
 正式登录/JWT 代码、前端登录页、Cookie 会话、部署模板和测试已经完成。由于入口尚无 TLS，按安全边界不得把正式密码登录切到公网 HTTP；下一阶段必须先完成 HTTPS/TLS。
 
@@ -28,6 +28,7 @@
   - `ad15fbb feat: complete system overview with real data`
   - `f3ccec5 feat: complete system operational pages`
   - `99ef5ad feat: refine scenario and operations workflows`
+  - `b3e5b34 feat: add managed code sources`
 
 本轮正式认证变更包括：
 
@@ -140,7 +141,11 @@ staging unit、env、Cookie jar、临时 release 已清理，测试用户原 pas
 - `127.0.0.1:18080` 仅回环监听。
 - Nginx 与 MariaDB active，`nginx -t` 通过。
 - 原 `/` 为 200、`/api` 为 404、`/ai-data/` 为 200。
-- 当前 `/bizdevops/` 仍受 Basic Auth 保护并运行 development identity release。
+- 当前 `/bizdevops/` 仍受 Basic Auth 保护；未认证请求为 401。
+- API/Web 已原子切换到 `20260712164546-functional`；代码源、环境和成员 API 均在真实 MariaDB 上返回 200。
+- 新 Web 资源包含代码源/系统设置功能，旧“当前系统暂无系统设置数据”占位文案已不存在。
+- Nginx 仅在 `/bizdevops/api/` 反代中覆盖 `X-Dev-User-ID`，因此浏览器 bundle 不携带试运行身份，客户端也不能伪造其他用户。
+- `SCANNER_ALLOWED_ROOTS` 当前未配置，本地扫描按 deny-all 设计拒绝执行；登记和选择代码源不受影响。
 
 ## 6. 安全边界
 
@@ -178,6 +183,8 @@ staging unit、env、Cookie jar、临时 release 已清理，测试用户原 pas
 - API 切换失败：恢复旧 env、旧 binary symlink，重启 BizDevOps API。
 - Web 切换失败：恢复 `/var/www/bizdevops` 旧 symlink。
 - Nginx 失败：恢复全部备份，`nginx -t` 后 reload。
+- 本次功能 release 的直接回滚目标：API/Worker bin `/opt/bizdevops/releases/20260712031205/bin`，Web `/opt/bizdevops/releases/20260712033413-identity-hotfix/web`，Nginx 备份 `/etc/nginx/snippets/bizdevops.conf.bak.20260712164546-functional`。
+- 切换正式 JWT 时必须移除当前 Nginx development identity Header，不能让它与 JWT 模式并存。
 - 数据库 password hash 切换失败：通过 stdin 恢复旧 hash；不得把 hash 或明文密码写入日志。
 - 不得停止、覆盖或重启 stock-analyzer、ai-data-mvp、rent-platform，也不得触碰 80 端口现有 Go 程序。
 - 独立试运行数据库不自动删除；删除必须另获用户授权。

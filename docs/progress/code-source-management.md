@@ -32,9 +32,13 @@
 - Web：TypeScript 检查和 `/bizdevops/` 生产构建通过。
 - Python DB/腾讯云部署静态契约：22 项通过。
 
-## 部署说明
+## 腾讯云试运行部署
 
-- 本轮未切换腾讯云公网 release，现有试运行服务保持不变。
+- API/Web 已切换到 release `20260712164546-functional`，API、Worker、Nginx、MariaDB 均 active。
+- 由于公网仍无可信 TLS，API 继续使用 `AUTH_MODE=development`，Basic Auth 保持启用，正式 JWT 登录未公开切换。
+- 最新 Web bundle 不含 development 用户 ID；Nginx 在受 Basic Auth 保护的 `/bizdevops/api/` location 覆盖注入固定试运行身份，避免客户端携带或伪造身份 Header。
 - `deploy/tencent/api.env.example` 只新增空的 `SCANNER_ALLOWED_ROOTS=`，未写入真实服务器路径或秘密。
-- 以后部署新 API 时，必须由服务器运维者设置最小化允许根；未设置时本地扫描按设计拒绝执行。
+- 远端当前未配置扫描允许根，因此本地扫描按设计拒绝执行；配置时必须由服务器运维者设置最小化目录范围。
 - Git 源当前可登记、选择并创建追踪记录，但不能执行；后续需实现受控 clone/fetch、host allowlist、凭据 Provider、版本固定和工作区清理。
+- 远端 smoke test：系统、代码源、环境和成员 API 均为 200；未认证 `/bizdevops/` 为 401；原 `/`、`/api`、`/ai-data/` 分别保持 200/404/200。
+- 回滚目标：bin `20260712031205`、Web `20260712033413-identity-hotfix`，Nginx 已保存带 release 标识的备份。
