@@ -7,7 +7,7 @@ import { Page, PlaceholderPanel } from '../components/Page'
 import { systemPath } from '../navigation'
 import type { SystemContextState } from '../layouts/SystemLayout'
 import { WorkflowMutationPanel } from './workflow-mutations'
-import type { CreateScanInput, RunScanInput, UploadScenarioImportInput } from '../api/types'
+import type { UploadScenarioImportInput } from '../api/types'
 import { SystemManagementOverview } from './management'
 
 const roleLabels: Record<SystemRole, string> = {
@@ -237,26 +237,6 @@ export function SystemOverviewPage() {
     return () => { active = false }
   }, [systemId])
 
-  async function refreshScans() {
-    if (!systemId) return
-    try {
-      const items = await apiClient.listScans(systemId)
-      setResources((current) => ({ ...current, scans: { status: 'ready', items: Array.isArray(items) ? items : [] } }))
-    } catch {
-      // A failed refresh must not erase the records already visible to the user.
-    }
-  }
-
-  async function refreshOperations() {
-    if (!systemId) return
-    try {
-      const items = await apiClient.listApiOperations(systemId)
-      setResources((current) => ({ ...current, operations: { status: 'ready', items: Array.isArray(items) ? items : [] } }))
-    } catch {
-      // Preserve the previous API asset snapshot on a partial refresh failure.
-    }
-  }
-
   async function refreshImports() {
     if (!systemId) return
     try {
@@ -265,20 +245,6 @@ export function SystemOverviewPage() {
     } catch {
       // Preserve the previous import snapshot on a partial refresh failure.
     }
-  }
-
-  async function createScan(input: CreateScanInput) {
-    if (!systemId) throw new Error('当前业务系统尚未加载完成')
-    const scan = await apiClient.createScan(systemId, input)
-    await refreshScans()
-    return scan
-  }
-
-  async function runScan(scanId: string, input: RunScanInput) {
-    if (!systemId) throw new Error('当前业务系统尚未加载完成')
-    const result = await apiClient.runScan(systemId, scanId, input)
-    await Promise.all([refreshScans(), refreshOperations()])
-    return result
   }
 
   async function uploadImport(input: UploadScenarioImportInput) {
@@ -309,8 +275,6 @@ export function SystemOverviewPage() {
       <WorkflowMutationPanel
         role={state.system.myRole}
         imports={visibleImports}
-        onCreateScan={createScan}
-        onRunScan={runScan}
         onUploadImport={uploadImport}
         onConfirmScripts={confirmScripts}
         onApplyImport={applyImport}

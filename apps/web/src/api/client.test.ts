@@ -142,14 +142,14 @@ describe('API client', () => {
     const client = createApiClient({ baseUrl: '/api/v1', transport })
 
     await client.createScan('system-a', { codeSourceId: 'source-1', sourceRef: 'main', sourceCommit: 'abc', language: 'go', framework: 'gin' })
-    await client.runScan('system-a', 'scan-1', { repositoryRoot: 'D:/repo' })
+    await client.runScan('system-a', 'scan-1')
     await client.uploadScenarioImport('system-a', { fileName: 'orders.json', document: { schemaVersion: '1.0' } })
     await client.confirmScenarioImportScripts('system-a', 'import-1')
     await client.applyScenarioImport('system-a', 'import-1')
 
     expect(transport.mock.calls.map(([url, init]) => [url, init.method, init.body])).toEqual([
       ['/api/v1/systems/system-a/scans', 'POST', JSON.stringify({ codeSourceId: 'source-1', sourceRef: 'main', sourceCommit: 'abc', language: 'go', framework: 'gin' })],
-      ['/api/v1/systems/system-a/scans/scan-1/run', 'POST', JSON.stringify({ repositoryRoot: 'D:/repo' })],
+      ['/api/v1/systems/system-a/scans/scan-1/run', 'POST', '{}'],
       ['/api/v1/systems/system-a/scenario-imports', 'POST', JSON.stringify({ fileName: 'orders.json', document: { schemaVersion: '1.0' } })],
       ['/api/v1/systems/system-a/scenario-imports/import-1/confirm-scripts', 'POST', undefined],
       ['/api/v1/systems/system-a/scenario-imports/import-1/apply', 'POST', undefined],
@@ -246,6 +246,25 @@ describe('API client', () => {
     expect(transport.mock.calls.map(([url, init]) => [url, init.method ?? 'GET', init.body])).toEqual([
       ['/api/v1/systems/system%20%2F%20A/members', 'GET', undefined],
       ['/api/v1/systems/system%20%2F%20A/members', 'POST', JSON.stringify({ userId: 'user / 1', role: 'reviewer' })],
+    ])
+  })
+
+  it('uses system-scoped code source endpoints with distinct create and update methods', async () => {
+    const transport = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ data: [] }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    const client = createApiClient({ baseUrl: '/api/v1', transport })
+    const source = {
+      name: '订单服务', sourceType: 'git' as const, repositoryUrl: 'https://git.example.test/orders.git',
+      defaultRef: 'main', includePaths: ['src'], excludePaths: ['vendor'], credentialRef: 'vault://git/orders', status: 'active' as const,
+    }
+
+    await client.listCodeSources('system / A')
+    await client.createCodeSource('system / A', source)
+    await client.updateCodeSource('system / A', 'source / 1', { ...source, status: 'disabled' })
+
+    expect(transport.mock.calls.map(([url, init]) => [url, init.method ?? 'GET', init.body])).toEqual([
+      ['/api/v1/systems/system%20%2F%20A/code-sources', 'GET', undefined],
+      ['/api/v1/systems/system%20%2F%20A/code-sources', 'POST', JSON.stringify(source)],
+      ['/api/v1/systems/system%20%2F%20A/code-sources/source%20%2F%201', 'PUT', JSON.stringify({ ...source, status: 'disabled' })],
     ])
   })
 })

@@ -27,6 +27,7 @@
   - `38e6f0f feat: add secure JWT login flow`
   - `ad15fbb feat: complete system overview with real data`
   - `f3ccec5 feat: complete system operational pages`
+  - `99ef5ad feat: refine scenario and operations workflows`
 
 本轮正式认证变更包括：
 
@@ -48,6 +49,11 @@
 - 系统成员管理：仅 owner 读取成员目录并添加已有用户或更新系统角色。
 - 工作区场景记录已链接到版本编辑器；无空白创建契约时提供诚实的候选核验/导入引导。
 - 已删除未使用的静态假仪表盘和无后端契约的“新建业务系统”按钮。
+- 代码源管理：系统成员可查看，owner/maintainer 可新增和更新 Git/本地代码源；凭据只允许外部引用。
+- 扫描与场景发现已使用真实代码源下拉，不再要求手填 UUID。
+- 扫描执行不再接受浏览器提交的服务器路径，只从 system-scoped 代码源解析。
+- 本地扫描受 `SCANNER_ALLOWED_ROOTS`、真实目录和符号链接边界约束；空 allowlist 默认拒绝全部执行。
+- Git 代码源在受控 checkout workspace 未实现前只可登记和创建追踪记录，不能直接执行。
 
 敏感文件 `docs/tencent.txt` 已由 `.gitignore` 精确忽略。绝不能输出内容、暂存或提交。所有 shell 命令仍必须按 `C:\Users\ryanf\.codex\RTK.md` 以 `rtk` 开头。
 
@@ -96,12 +102,13 @@ Nginx Basic Auth 与 Bearer JWT 都使用 `Authorization` Header。浏览器无�
 
 - API：`go test -count=1 ./...` 通过。
 - API：`go vet ./...` 通过。
-- Web：18 个测试文件、87 项测试通过。
+- Web：19 个测试文件、96 项测试通过。
 - Web：`VITE_BASE_PATH=/bizdevops/` 且不设置 `VITE_DEV_USER_ID` 的生产构建通过。
-- Python DB/部署静态契约：21 项通过。
 - 部署契约覆盖 JWT 必需配置、安全 Cookie、禁止 Web Storage token、登录限流、TLS 门禁和回滚。
 - 场景人工修订覆盖 RBAC、跨系统隔离、严格 JSON、依赖 DAG、MySQL 事务/CAS 和 `requestConfig` JSON 对象序列化。
-- Python DB/部署静态契约：21 项通过。
+- Python DB/部署静态契约：22 项通过。
+- 代码源覆盖严格 JSON、RBAC/跨系统隔离、Git/本地互斥、外部凭据引用、重名冲突和 MySQL system scope。
+- 扫描目录覆盖服务端 allowlist、缺省 deny-all、路径边界和 symlink 逃逸。
 
 ### 远端真实 MariaDB staging
 
@@ -182,6 +189,7 @@ staging unit、env、Cookie jar、临时 release 已清理，测试用户原 pas
 - `docs/progress/system-overview-real-data.md`
 - `docs/progress/system-operational-pages.md`
 - `docs/progress/functional-refinement.md`
+- `docs/progress/code-source-management.md`
 - `docs/progress/root-end-to-end-scenario.md`
 - `docs/progress/root-operations-integration.md`
 - `deploy/tencent/README.md`
@@ -195,3 +203,4 @@ TLS 与正式登录上线后，优先继续：
 3. 多 Worker 并发 E2E、容量限制、指标与告警。
 4. 密码重置、管理员用户管理、多因素认证或外部 IdP/OIDC。
 5. 为平台设置和新建业务系统设计 platform admin/auditor 服务端授权与写接口，再替换当前诚实占位说明。
+6. 实现 Git 代码源的受控 clone/fetch workspace、仓库 host allowlist、外部凭据 Provider 和清理策略。

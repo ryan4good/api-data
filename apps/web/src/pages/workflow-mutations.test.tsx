@@ -14,7 +14,7 @@ const scenarioImport: ScenarioImport = {
 }
 
 const callbacks = {
-  onCreateScan: vi.fn(), onRunScan: vi.fn(), onUploadImport: vi.fn(),
+  onUploadImport: vi.fn(),
   onConfirmScripts: vi.fn(), onApplyImport: vi.fn(),
 }
 
@@ -51,11 +51,11 @@ describe('workflow mutations', () => {
     const reviewer = renderToStaticMarkup(<WorkflowMutationPanel role="reviewer" imports={[scenarioImport]} {...callbacks} />)
     const viewer = renderToStaticMarkup(<WorkflowMutationPanel role="viewer" imports={[scenarioImport]} {...callbacks} />)
 
-    expect(owner).toContain('创建扫描任务')
+    expect(owner).not.toContain('代码源 ID')
     expect(owner).toContain('上传场景 JSON')
     expect(owner).toContain('应用导入')
     expect(reviewer).toContain('确认脚本')
-    expect(reviewer).not.toContain('创建扫描任务')
+    expect(reviewer).not.toContain('代码源 ID')
     expect(reviewer).not.toContain('应用导入')
     expect(viewer).toContain('当前角色没有可执行的写操作')
     expect(viewer).not.toContain('<form')

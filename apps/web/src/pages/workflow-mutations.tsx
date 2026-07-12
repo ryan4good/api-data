@@ -1,8 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react'
 import type {
-  CreateScanInput,
-  RunScanInput,
-  ScanRun,
   ScenarioImport,
   SystemRole,
   UploadScenarioImportInput,
@@ -55,8 +52,6 @@ export async function loadPreservingOnFailure<T>(
 interface WorkflowMutationPanelProps {
   role: SystemRole
   imports: ScenarioImport[]
-  onCreateScan: (input: CreateScanInput) => Promise<ScanRun>
-  onRunScan: (scanId: string, input: RunScanInput) => Promise<unknown>
   onUploadImport: (input: UploadScenarioImportInput) => Promise<ScenarioImport>
   onConfirmScripts: (importId: string) => Promise<unknown>
   onApplyImport: (importId: string) => Promise<unknown>
@@ -74,15 +69,12 @@ function errorMessage(reason: unknown): string {
 export function WorkflowMutationPanel({
   role,
   imports,
-  onCreateScan,
-  onRunScan,
   onUploadImport,
   onConfirmScripts,
   onApplyImport,
   initialFeedback = { status: 'idle' },
 }: WorkflowMutationPanelProps) {
   const [feedback, setFeedback] = useState<MutationFeedback>(initialFeedback)
-  const [createdScan, setCreatedScan] = useState<ScanRun | undefined>()
   const guard = useRef(createSubmissionGuard()).current
   const manages = role === 'owner' || role === 'maintainer'
   const reviews = manages || role === 'reviewer'
@@ -99,28 +91,6 @@ export function WorkflowMutationPanel({
       setFeedback({ status: 'error', message: errorMessage(reason) })
       return undefined
     }
-  }
-
-  async function createScan(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const form = new FormData(event.currentTarget)
-    const scan = await submit('正在创建扫描任务…', '扫描任务创建成功，可继续执行。', () => onCreateScan({
-      codeSourceId: value(form, 'codeSourceId'),
-      sourceRef: value(form, 'sourceRef'),
-      sourceCommit: value(form, 'sourceCommit'),
-      language: value(form, 'language'),
-      framework: value(form, 'framework'),
-    }))
-    if (scan) setCreatedScan(scan)
-  }
-
-  async function runScan(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (!createdScan) return
-    const form = new FormData(event.currentTarget)
-    await submit('正在执行代码扫描…', '代码扫描执行完成，已请求刷新资产摘要。', () => onRunScan(createdScan.id, {
-      repositoryRoot: value(form, 'repositoryRoot'),
-    }))
   }
 
   async function upload(event: FormEvent<HTMLFormElement>) {
@@ -148,14 +118,6 @@ export function WorkflowMutationPanel({
       {feedback.status !== 'idle' && <div className={`mutation-feedback ${feedback.status}`} role="status">{feedback.message}</div>}
       {manages && (
         <div className="mutation-forms">
-          <form onSubmit={createScan}>
-            <h3>创建扫描任务</h3>
-            <label>代码源 ID<input name="codeSourceId" required placeholder="UUID" /></label>
-            <label>分支 / 标签<input name="sourceRef" placeholder="main" /></label>
-            <label>Commit<input name="sourceCommit" /></label>
-            <div className="form-row"><label>语言<input name="language" placeholder="go" /></label><label>框架<input name="framework" placeholder="gin" /></label></div>
-            <button type="submit" disabled={submitting}>创建扫描任务</button>
-          </form>
           <form onSubmit={upload}>
             <h3>上传场景 JSON</h3>
             <label>文件名<input name="fileName" required placeholder="orders.postman_collection.json" /></label>
@@ -163,13 +125,6 @@ export function WorkflowMutationPanel({
             <button type="submit" disabled={submitting}>上传并分析</button>
           </form>
         </div>
-      )}
-      {manages && createdScan && (
-        <form className="run-scan-form" onSubmit={runScan}>
-          <h3>执行扫描任务 {createdScan.id}</h3>
-          <label>服务端仓库根目录<input name="repositoryRoot" required placeholder="D:/work/service" /></label>
-          <button type="submit" disabled={submitting}>执行扫描</button>
-        </form>
       )}
       {imports.length > 0 && (
         <div className="import-actions">

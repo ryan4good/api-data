@@ -33,7 +33,6 @@ type stubScannerService struct {
 	created    CreateScanInput
 	runSystem  string
 	runScan    string
-	runRoot    string
 	scans      []ScanRun
 	operations []APIOperation
 	err        error
@@ -44,8 +43,8 @@ func (s *stubScannerService) Create(_ context.Context, input CreateScanInput) (S
 	return ScanRun{ID: httpScanID, SystemID: input.SystemID, CodeSourceID: input.CodeSourceID, Status: StatusQueued}, s.err
 }
 
-func (s *stubScannerService) Run(_ context.Context, systemID, scanID, root string) error {
-	s.runSystem, s.runScan, s.runRoot = systemID, scanID, root
+func (s *stubScannerService) Run(_ context.Context, systemID, scanID string) error {
+	s.runSystem, s.runScan = systemID, scanID
 	return s.err
 }
 
@@ -121,13 +120,21 @@ func TestScannerHTTPCreateMapsStrictBodyAndActor(t *testing.T) {
 	}
 }
 
-func TestScannerHTTPRunPassesScopedIDsAndRoot(t *testing.T) {
+func TestScannerHTTPRunPassesOnlyScopedIDs(t *testing.T) {
 	service := &stubScannerService{}
 	handler := newScannerHTTPHandler(service, stubScannerRoles{role: "maintainer", found: true})
 	recorder := scannerRequest(t, handler, http.MethodPost,
-		"/api/v1/systems/"+httpSystemID+"/scans/"+httpScanID+"/run", `{"repositoryRoot":"D:/work/service"}`)
-	if recorder.Code != http.StatusOK || service.runSystem != httpSystemID || service.runScan != httpScanID || service.runRoot != "D:/work/service" {
-		t.Fatalf("status=%d run=(%q,%q,%q) body=%s", recorder.Code, service.runSystem, service.runScan, service.runRoot, recorder.Body.String())
+		"/api/v1/systems/"+httpSystemID+"/scans/"+httpScanID+"/run", `{}`)
+	if recorder.Code != http.StatusOK || service.runSystem != httpSystemID || service.runScan != httpScanID {
+		t.Fatalf("status=%d run=(%q,%q) body=%s", recorder.Code, service.runSystem, service.runScan, recorder.Body.String())
+	}
+}
+
+func TestScannerHTTPRejectsClientRepositoryRoot(t *testing.T) {
+	handler := newScannerHTTPHandler(&stubScannerService{}, stubScannerRoles{role: "owner", found: true})
+	recorder := scannerRequest(t, handler, http.MethodPost, "/api/v1/systems/"+httpSystemID+"/scans/"+httpScanID+"/run", `{"repositoryRoot":"D:/attacker-controlled"}`)
+	if recorder.Code != http.StatusBadRequest || responseErrorCode(t, recorder) != "invalid_request" {
+		t.Fatalf("status=%d body=%s", recorder.Code, recorder.Body.String())
 	}
 }
 
@@ -136,7 +143,7 @@ func TestScannerHTTPHidesSystemsFromNonMembers(t *testing.T) {
 	for _, request := range []struct{ method, path, body string }{
 		{http.MethodGet, "/api/v1/systems/" + httpSystemID + "/scans", ""},
 		{http.MethodPost, "/api/v1/systems/" + httpSystemID + "/scans", `{"codeSourceId":"` + httpSourceID + `"}`},
-		{http.MethodPost, "/api/v1/systems/" + httpSystemID + "/scans/" + httpScanID + "/run", `{"repositoryRoot":"."}`},
+		{http.MethodPost, "/api/v1/systems/" + httpSystemID + "/scans/" + httpScanID + "/run", `{}`},
 		{http.MethodGet, "/api/v1/systems/" + httpSystemID + "/api-operations", ""},
 	} {
 		recorder := scannerRequest(t, handler, request.method, request.path, request.body)
@@ -151,7 +158,7 @@ func TestScannerHTTPReadOnlyMembersCannotCreateOrRun(t *testing.T) {
 		handler := newScannerHTTPHandler(&stubScannerService{}, stubScannerRoles{role: role, found: true})
 		for _, request := range []struct{ path, body string }{
 			{"/api/v1/systems/" + httpSystemID + "/scans", `{"codeSourceId":"` + httpSourceID + `"}`},
-			{"/api/v1/systems/" + httpSystemID + "/scans/" + httpScanID + "/run", `{"repositoryRoot":"."}`},
+			{"/api/v1/systems/" + httpSystemID + "/scans/" + httpScanID + "/run", `{}`},
 		} {
 			recorder := scannerRequest(t, handler, http.MethodPost, request.path, request.body)
 			if recorder.Code != http.StatusForbidden || responseErrorCode(t, recorder) != "forbidden" {
@@ -168,8 +175,8 @@ func TestScannerHTTPRejectsInvalidUUIDAndStrictJSON(t *testing.T) {
 		{"/api/v1/systems/" + httpSystemID + "/scans", `{"codeSourceId":"bad"}`},
 		{"/api/v1/systems/" + httpSystemID + "/scans", `{"codeSourceId":"` + httpSourceID + `","unknown":true}`},
 		{"/api/v1/systems/" + httpSystemID + "/scans", `{"codeSourceId":"` + httpSourceID + `"}{}`},
-		{"/api/v1/systems/" + httpSystemID + "/scans/not-a-uuid/run", `{"repositoryRoot":"."}`},
-		{"/api/v1/systems/" + httpSystemID + "/scans/" + httpScanID + "/run", `{"repositoryRoot":" "}`},
+		{"/api/v1/systems/" + httpSystemID + "/scans/not-a-uuid/run", `{}`},
+		{"/api/v1/systems/" + httpSystemID + "/scans/" + httpScanID + "/run", `{"unknown":true}`},
 	}
 	for _, test := range tests {
 		recorder := scannerRequest(t, handler, http.MethodPost, test.path, test.body)
@@ -194,8 +201,26 @@ func TestScannerHTTPMapsRoleReaderAndServiceErrors(t *testing.T) {
 		t.Fatalf("role failure status=%d", recorder.Code)
 	}
 	serviceFailure := newScannerHTTPHandler(&stubScannerService{err: ErrScanNotFound}, stubScannerRoles{role: "owner", found: true})
-	if recorder := scannerRequest(t, serviceFailure, http.MethodPost, "/api/v1/systems/"+httpSystemID+"/scans/"+httpScanID+"/run", `{"repositoryRoot":"."}`); recorder.Code != http.StatusNotFound {
+	if recorder := scannerRequest(t, serviceFailure, http.MethodPost, "/api/v1/systems/"+httpSystemID+"/scans/"+httpScanID+"/run", `{}`); recorder.Code != http.StatusNotFound {
 		t.Fatalf("service not found status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+}
+
+func TestScannerHTTPMapsCodeSourceFailures(t *testing.T) {
+	for _, tc := range []struct {
+		err    error
+		status int
+		code   string
+	}{{ErrCodeSourceNotFound, http.StatusNotFound, "code_source_not_found"}, {ErrCodeSourceDisabled, http.StatusConflict, "code_source_disabled"}, {ErrCodeSourceNotRunnable, http.StatusConflict, "code_source_not_runnable"}} {
+		h := newScannerHTTPHandler(&stubScannerService{err: tc.err}, stubScannerRoles{role: "owner", found: true})
+		create := scannerRequest(t, h, http.MethodPost, "/api/v1/systems/"+httpSystemID+"/scans", `{"codeSourceId":"`+httpSourceID+`"}`)
+		if create.Code != tc.status || responseErrorCode(t, create) != tc.code {
+			t.Fatalf("create err=%v status=%d body=%s", tc.err, create.Code, create.Body.String())
+		}
+		run := scannerRequest(t, h, http.MethodPost, "/api/v1/systems/"+httpSystemID+"/scans/"+httpScanID+"/run", `{}`)
+		if run.Code != tc.status || responseErrorCode(t, run) != tc.code {
+			t.Fatalf("run err=%v status=%d body=%s", tc.err, run.Code, run.Body.String())
+		}
 	}
 }
 

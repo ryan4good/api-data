@@ -1,8 +1,8 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
-import type { DiscoveryCandidate, ScenarioDetail, ScenarioRunDetail } from '../api/types'
-import { CandidateQueueView, DiscoveryPageView } from './discovery'
+import type { CodeSource, DiscoveryCandidate, ScenarioDetail, ScenarioRunDetail } from '../api/types'
+import { CandidateQueueView, createDiscoveryInput, DiscoveryPageView, discoveryNeedsCodeSource } from './discovery'
 import { RunDetailView, RunsPageView, parseInputVariables } from './runs'
 
 const candidate: DiscoveryCandidate = {
@@ -29,17 +29,44 @@ const scenarioDetail: ScenarioDetail = {
 
 const noop = vi.fn()
 const render = (node: React.ReactNode) => renderToStaticMarkup(<MemoryRouter>{node}</MemoryRouter>)
+const source: CodeSource = { id: 'source-1', systemId: 'system-a', name: '订单仓库', sourceType: 'git', repositoryUrl: 'https://example.test/orders.git', defaultRef: 'develop', includePaths: [], excludePaths: [], status: 'active', createdBy: 'user-1', createdAt: '2026-07-12T00:00:00Z', updatedAt: '2026-07-12T00:00:00Z' }
 
 describe('discovery and runs pages', () => {
   it('makes all discovery inputs explicit and keeps viewers read-only', () => {
-    const owner = render(<DiscoveryPageView role="owner" state={{ status: 'empty' }} onSubmit={noop} />)
-    const viewer = render(<DiscoveryPageView role="viewer" state={{ status: 'empty' }} onSubmit={noop} />)
+    const owner = render(<DiscoveryPageView role="owner" state={{ status: 'empty' }} codeSources={{ status: 'ready', items: [source] }} onSubmit={noop} />)
+    const viewer = render(<DiscoveryPageView role="viewer" state={{ status: 'empty' }} codeSources={{ status: 'ready', items: [source] }} onSubmit={noop} />)
     expect(owner).toContain('仅代码')
     expect(owner).toContain('一句话需求')
     expect(owner).toContain('PRD 文档')
     expect(owner).toContain('混合输入')
     expect(owner).toContain('生成场景候选')
+    expect(owner).toContain('订单仓库')
+    expect(owner).toContain('git · develop')
+    expect(owner).not.toContain('填写 UUID')
     expect(viewer).not.toContain('<form')
+  })
+
+  it('requires a selected source only for code and mixed discoveries', () => {
+    expect(discoveryNeedsCodeSource('code')).toBe(true)
+    expect(discoveryNeedsCodeSource('mixed')).toBe(true)
+    expect(discoveryNeedsCodeSource('prompt')).toBe(false)
+    expect(discoveryNeedsCodeSource('prd')).toBe(false)
+    const prompt = new FormData()
+    prompt.set('type', 'prompt'); prompt.set('name', '需求发现'); prompt.set('prompt', '支付后锁库存')
+    expect(createDiscoveryInput(prompt)).toMatchObject({ type: 'prompt', name: '需求发现', codeSourceId: undefined })
+    const code = new FormData()
+    code.set('type', 'code'); code.set('name', '代码发现')
+    expect(() => createDiscoveryInput(code)).toThrow('请选择代码源')
+  })
+
+  it('shows honest code-source empty and failure states while preserving discovery records', () => {
+    const record = { id: 'discovery-1', systemId: 'system-a', type: 'code', name: '历史发现', status: 'ready', requestedBy: 'user-1', createdAt: '2026-07-12T00:00:00Z', updatedAt: '2026-07-12T00:00:00Z' } as const
+    const empty = render(<DiscoveryPageView role="owner" systemId="system-a" state={{ status: 'ready', items: [record] }} codeSources={{ status: 'empty' }} onSubmit={noop} />)
+    const failed = render(<DiscoveryPageView role="owner" state={{ status: 'ready', items: [record] }} codeSources={{ status: 'error', message: '代码源加载失败' }} onSubmit={noop} />)
+    expect(empty).toContain('/systems/system-a/settings')
+    expect(empty).toContain('请先在系统设置中添加启用的代码源')
+    expect(failed).toContain('代码源加载失败')
+    expect(failed).toContain('历史发现')
   })
 
   it('shows P0 evidence and only reviewers can accept or reject candidates', () => {

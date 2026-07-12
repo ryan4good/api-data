@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"regexp"
-	"strings"
 
 	"bizdevops/apps/api/internal/httpresponse"
 	"bizdevops/apps/api/internal/modules/access"
@@ -19,7 +18,7 @@ var scannerUUIDPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5
 
 type ScannerHTTPService interface {
 	Create(ctx context.Context, input CreateScanInput) (ScanRun, error)
-	Run(ctx context.Context, systemID, scanID, root string) error
+	Run(ctx context.Context, systemID, scanID string) error
 	ListScans(ctx context.Context, systemID string) ([]ScanRun, error)
 	ListOperations(ctx context.Context, systemID string) ([]APIOperation, error)
 }
@@ -37,9 +36,7 @@ type createScanRequest struct {
 	Framework    string `json:"framework"`
 }
 
-type runScanRequest struct {
-	RepositoryRoot string `json:"repositoryRoot"`
-}
+type runScanRequest struct{}
 
 // RegisterSystemRoutes registers scanner endpoints without choosing identity
 // middleware or repository wiring. The root composition layer owns both.
@@ -101,7 +98,7 @@ func (h *scannerHTTPHandler) createScan(w http.ResponseWriter, r *http.Request) 
 		Language: request.Language, Framework: request.Framework,
 	})
 	if err != nil {
-		scannerInternalFailure(w)
+		scannerServiceError(w, err)
 		return
 	}
 	httpresponse.Success(w, http.StatusCreated, scan)
@@ -119,26 +116,34 @@ func (h *scannerHTTPHandler) runScan(w http.ResponseWriter, r *http.Request) {
 	}
 	var request runScanRequest
 	if err := decodeScannerJSON(w, r, &request); err != nil {
-		scannerInvalidRequest(w, "repositoryRoot is required and the JSON body must contain only supported fields")
+		scannerInvalidRequest(w, "the JSON body must be an empty object")
 		return
 	}
-	root := strings.TrimSpace(request.RepositoryRoot)
-	if root == "" {
-		scannerInvalidRequest(w, "repositoryRoot is required")
-		return
-	}
-	if err := h.service.Run(r.Context(), systemID, scanID, root); err != nil {
+	if err := h.service.Run(r.Context(), systemID, scanID); err != nil {
 		switch {
 		case errors.Is(err, ErrScanNotFound):
 			httpresponse.Failure(w, http.StatusNotFound, "scan_not_found", "scan was not found", nil)
 		case errors.Is(err, ErrInvalidTransition):
 			httpresponse.Failure(w, http.StatusConflict, "invalid_scan_status", "scan cannot run from its current status", nil)
 		default:
-			scannerInternalFailure(w)
+			scannerServiceError(w, err)
 		}
 		return
 	}
 	httpresponse.Success(w, http.StatusOK, map[string]string{"scanId": scanID, "status": string(StatusSucceeded)})
+}
+
+func scannerServiceError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, ErrCodeSourceNotFound):
+		httpresponse.Failure(w, http.StatusNotFound, "code_source_not_found", "code source was not found", nil)
+	case errors.Is(err, ErrCodeSourceDisabled):
+		httpresponse.Failure(w, http.StatusConflict, "code_source_disabled", "code source is disabled", nil)
+	case errors.Is(err, ErrCodeSourceNotRunnable):
+		httpresponse.Failure(w, http.StatusConflict, "code_source_not_runnable", "code source does not resolve to an allowed runnable workspace", nil)
+	default:
+		scannerInternalFailure(w)
+	}
 }
 
 func (h *scannerHTTPHandler) listOperations(w http.ResponseWriter, r *http.Request) {

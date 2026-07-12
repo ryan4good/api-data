@@ -1,4 +1,4 @@
-import type { ApiEnvelope, ApiErrorEnvelope, ApiOperation, AuthUser, BusinessSystem, CreateDiscoveryInput, CreateDiscoveryResult, CreateScanInput, CreateScenarioRunInput, CreateSecretReferenceInput, DiscoveryCandidate, DiscoveryRecord, Environment, LoginInput, LoginResult, ManagementOverview, ManagementSystemOverview, PromoteCandidateResult, RetryStepResult, ReviewCandidateInput, RunScanInput, RunScanResult, ScanRun, ScenarioDetail, ScenarioImport, ScenarioRunDetail, ScenarioSummary, SecretReference, SystemMember, UpdateScenarioInput, UploadScenarioImportInput, UpsertEnvironmentInput, UpsertSystemMemberInput } from './types'
+import type { ApiEnvelope, ApiErrorEnvelope, ApiOperation, AuthUser, BusinessSystem, CodeSource, CreateDiscoveryInput, CreateDiscoveryResult, CreateScanInput, CreateScenarioRunInput, CreateSecretReferenceInput, DiscoveryCandidate, DiscoveryRecord, Environment, LoginInput, LoginResult, ManagementOverview, ManagementSystemOverview, PromoteCandidateResult, RetryStepResult, ReviewCandidateInput, RunScanResult, ScanRun, ScenarioDetail, ScenarioImport, ScenarioRunDetail, ScenarioSummary, SecretReference, SystemMember, UpdateScenarioInput, UploadScenarioImportInput, UpsertCodeSourceInput, UpsertEnvironmentInput, UpsertSystemMemberInput } from './types'
 import { clearAuthSession } from '../auth/session'
 
 export class ApiError extends Error {
@@ -62,6 +62,9 @@ export function createApiClient(options: ApiClientOptions = {}) {
     getSystem: (systemId: string) => request<BusinessSystem>(`/systems/${encodeURIComponent(systemId)}`),
     listSystemMembers: (systemId: string) => request<SystemMember[]>(`/systems/${encodeURIComponent(systemId)}/members`),
     upsertSystemMember: (systemId: string, input: UpsertSystemMemberInput) => request<SystemMember>(`/systems/${encodeURIComponent(systemId)}/members`, { method: 'POST', body: JSON.stringify(input) }),
+    listCodeSources: (systemId: string) => request<CodeSource[]>(`/systems/${encodeURIComponent(systemId)}/code-sources`),
+    createCodeSource: (systemId: string, input: UpsertCodeSourceInput) => request<CodeSource>(`/systems/${encodeURIComponent(systemId)}/code-sources`, { method: 'POST', body: JSON.stringify(input) }),
+    updateCodeSource: (systemId: string, sourceId: string, input: UpsertCodeSourceInput) => request<CodeSource>(`/systems/${encodeURIComponent(systemId)}/code-sources/${encodeURIComponent(sourceId)}`, { method: 'PUT', body: JSON.stringify(input) }),
     listEnvironments: (systemId: string) => request<Environment[]>(`/systems/${encodeURIComponent(systemId)}/environments`),
     upsertEnvironment: (systemId: string, input: UpsertEnvironmentInput) => request<Environment>(`/systems/${encodeURIComponent(systemId)}/environments`, { method: 'POST', body: JSON.stringify(input) }),
     listSecretReferences: (systemId: string, environmentId: string) => request<SecretReference[]>(`/systems/${encodeURIComponent(systemId)}/environments/${encodeURIComponent(environmentId)}/secret-references`),
@@ -70,7 +73,7 @@ export function createApiClient(options: ApiClientOptions = {}) {
     listApiOperations: (systemId: string) => request<ApiOperation[]>(`/systems/${encodeURIComponent(systemId)}/api-operations`),
     listScenarioImports: (systemId: string) => request<ScenarioImport[]>(`/systems/${encodeURIComponent(systemId)}/scenario-imports`),
     createScan: (systemId: string, input: CreateScanInput) => request<ScanRun>(`/systems/${encodeURIComponent(systemId)}/scans`, { method: 'POST', body: JSON.stringify(input) }),
-    runScan: (systemId: string, scanId: string, input: RunScanInput) => request<RunScanResult>(`/systems/${encodeURIComponent(systemId)}/scans/${encodeURIComponent(scanId)}/run`, { method: 'POST', body: JSON.stringify(input) }),
+    runScan: (systemId: string, scanId: string) => request<RunScanResult>(`/systems/${encodeURIComponent(systemId)}/scans/${encodeURIComponent(scanId)}/run`, { method: 'POST', body: '{}' }),
     uploadScenarioImport: (systemId: string, input: UploadScenarioImportInput) => request<ScenarioImport>(`/systems/${encodeURIComponent(systemId)}/scenario-imports`, { method: 'POST', body: JSON.stringify(input) }),
     confirmScenarioImportScripts: (systemId: string, importId: string) => request<ScenarioImport>(`/systems/${encodeURIComponent(systemId)}/scenario-imports/${encodeURIComponent(importId)}/confirm-scripts`, { method: 'POST' }),
     applyScenarioImport: (systemId: string, importId: string) => request<ScenarioImport>(`/systems/${encodeURIComponent(systemId)}/scenario-imports/${encodeURIComponent(importId)}/apply`, { method: 'POST' }),

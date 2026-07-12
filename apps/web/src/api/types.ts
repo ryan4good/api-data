@@ -46,6 +46,40 @@ export interface UpsertSystemMemberInput {
   role: SystemRole
 }
 
+export type CodeSourceType = 'git' | 'local'
+export type CodeSourceStatus = 'active' | 'disabled'
+
+export interface CodeSource {
+  id: Identifier
+  systemId: Identifier
+  name: string
+  sourceType: CodeSourceType
+  repositoryUrl?: string
+  localPath?: string
+  defaultRef?: string
+  includePaths: string[]
+  excludePaths: string[]
+  /** Reference to an external credential provider; never a secret value. */
+  credentialRef?: string
+  status: CodeSourceStatus
+  createdBy: Identifier
+  createdAt: IsoDateTime
+  updatedAt: IsoDateTime
+}
+
+export interface UpsertCodeSourceInput {
+  name: string
+  sourceType: CodeSourceType
+  repositoryUrl?: string
+  localPath?: string
+  defaultRef?: string
+  includePaths: string[]
+  excludePaths: string[]
+  /** Reference only. Plaintext credentials and secrets are not accepted. */
+  credentialRef?: string
+  status: CodeSourceStatus
+}
+
 export type EnvironmentStatus = 'active' | 'disabled'
 
 export interface Environment {
@@ -122,10 +156,6 @@ export interface CreateScanInput {
   sourceCommit?: string
   language?: string
   framework?: string
-}
-
-export interface RunScanInput {
-  repositoryRoot: string
 }
 
 export interface RunScanResult {

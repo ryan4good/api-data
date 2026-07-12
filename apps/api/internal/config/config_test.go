@@ -132,6 +132,30 @@ func TestLoadHTTPExecutorConfiguration(t *testing.T) {
 	}
 }
 
+func TestLoadScannerAllowedRoots(t *testing.T) {
+	t.Setenv("AUTH_MODE", "development")
+	t.Setenv("SCANNER_ALLOWED_ROOTS", " /srv/repos , /opt/workspaces ,, ")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.Scanner.AllowedRoots) != 2 || cfg.Scanner.AllowedRoots[0] != "/srv/repos" || cfg.Scanner.AllowedRoots[1] != "/opt/workspaces" {
+		t.Fatalf("scanner=%#v", cfg.Scanner)
+	}
+}
+
+func TestLoadScannerAllowedRootsDefaultsToDenyAll(t *testing.T) {
+	t.Setenv("AUTH_MODE", "development")
+	t.Setenv("SCANNER_ALLOWED_ROOTS", "")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.Scanner.AllowedRoots) != 0 {
+		t.Fatalf("scanner=%#v", cfg.Scanner)
+	}
+}
+
 func TestLoadRejectsIncompleteOrUnknownAuthentication(t *testing.T) {
 	tests := []struct {
 		name     string

@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom'
 import { apiClient } from '../api/client'
 import type { CreateSecretReferenceInput, Environment, SecretReference, SystemMember, SystemRole, UpsertEnvironmentInput, UpsertSystemMemberInput } from '../api/types'
 import type { SystemContextState } from '../layouts/SystemLayout'
+import { CodeSourceSettingsPage } from './code-source-settings'
 
 export type EnvironmentState =
   | { status: 'loading' }
@@ -133,6 +134,7 @@ export function SystemSettingsPage() {
   }
 
   return <>
+    <CodeSourceSettingsPage />
     <EnvironmentSettingsView role={system.myRole} state={state} references={references} feedback={feedback} onUpsertEnvironment={upsertEnvironment} onCreateSecretReference={createSecretReference} />
     <MemberSettingsView role={system.myRole} state={memberState} feedback={memberFeedback} onUpsertMember={upsertMember} />
   </>

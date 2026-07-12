@@ -7,6 +7,7 @@ import (
 
 	"bizdevops/apps/api/internal/config"
 	"bizdevops/apps/api/internal/modules/access"
+	"bizdevops/apps/api/internal/modules/codesource"
 	"bizdevops/apps/api/internal/modules/connector"
 	"bizdevops/apps/api/internal/modules/discovery"
 	"bizdevops/apps/api/internal/modules/environment"
@@ -60,6 +61,9 @@ func TestSelectWorkflowRepositoriesUsesMemoryWithoutDSN(t *testing.T) {
 	if _, ok := dependencies.authUsers.(*access.MemoryUserRepository); !ok {
 		t.Fatalf("auth user repository type = %T", dependencies.authUsers)
 	}
+	if _, ok := dependencies.codeSources.(*codesource.MemoryRepository); !ok {
+		t.Fatalf("code source repository type = %T", dependencies.codeSources)
+	}
 	if err := closeRepositories(); err != nil {
 		t.Fatal(err)
 	}
@@ -75,12 +79,13 @@ func TestSelectWorkflowRepositoriesOpensConfiguredMySQL(t *testing.T) {
 	wantScenarios := scenario.NewMemoryRepository(nil)
 	wantManagement := management.NewMemoryRepository(nil, nil, nil)
 	wantEnvironments := environment.NewMemoryRepository()
+	wantCodeSources := codesource.NewMemoryRepository()
 	closed := false
 	openWorkflowMySQL = func(ctx context.Context, dsn string, pool system.MySQLPoolConfig) (workflowDependencies, func() error, error) {
 		if dsn != "configured-dsn" || pool.MaxOpenConns != 7 || pool.MaxIdleConns != 3 {
 			t.Fatalf("dsn=%q pool=%#v", dsn, pool)
 		}
-		return workflowDependencies{scans: wantScans, imports: wantImports, discoveries: wantDiscoveries, scenarios: wantScenarios, executions: wantExecutions, management: wantManagement, environments: wantEnvironments}, func() error { closed = true; return nil }, nil
+		return workflowDependencies{scans: wantScans, imports: wantImports, discoveries: wantDiscoveries, scenarios: wantScenarios, executions: wantExecutions, management: wantManagement, environments: wantEnvironments, codeSources: wantCodeSources}, func() error { closed = true; return nil }, nil
 	}
 
 	dependencies, closeRepositories, err := selectWorkflowRepositories(context.Background(), config.MySQL{
@@ -89,7 +94,7 @@ func TestSelectWorkflowRepositoriesOpensConfiguredMySQL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if dependencies.scans != wantScans || dependencies.imports != wantImports || dependencies.discoveries != wantDiscoveries || dependencies.scenarios != wantScenarios || dependencies.executions != wantExecutions || dependencies.management != wantManagement || dependencies.environments != wantEnvironments {
+	if dependencies.scans != wantScans || dependencies.imports != wantImports || dependencies.discoveries != wantDiscoveries || dependencies.scenarios != wantScenarios || dependencies.executions != wantExecutions || dependencies.management != wantManagement || dependencies.environments != wantEnvironments || dependencies.codeSources != wantCodeSources {
 		t.Fatalf("unexpected repositories: %#v", dependencies)
 	}
 	if err := closeRepositories(); err != nil {

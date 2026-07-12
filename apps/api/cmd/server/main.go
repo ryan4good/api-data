@@ -13,6 +13,7 @@ import (
 	"bizdevops/apps/api/internal/config"
 	"bizdevops/apps/api/internal/httpapi"
 	"bizdevops/apps/api/internal/modules/access"
+	"bizdevops/apps/api/internal/modules/codesource"
 	"bizdevops/apps/api/internal/modules/connector"
 	"bizdevops/apps/api/internal/modules/discovery"
 	"bizdevops/apps/api/internal/modules/environment"
@@ -32,6 +33,7 @@ type workflowDependencies struct {
 	imports      importer.Repository
 	management   management.Repository
 	environments environment.Repository
+	codeSources  codesource.Repository
 	discoveries  discovery.Repository
 	scenarios    scenario.Repository
 	executions   execution.Repository
@@ -63,6 +65,7 @@ var openWorkflowMySQL = func(ctx context.Context, dsn string, pool system.MySQLP
 		scans:     scanner.NewMySQLRepository(db), imports: importer.NewMySQLRepository(db),
 		management:   management.NewMySQLRepository(db),
 		environments: environment.NewMySQLRepository(db),
+		codeSources:  codesource.NewMySQLRepository(db),
 		discoveries:  discovery.NewMySQLRepository(db), executions: execution.NewMySQLRepository(db),
 		scenarios: scenario.NewMySQLRepository(db),
 		steps:     execution.NewMySQLStepProvider(db),
@@ -112,7 +115,7 @@ func main() {
 		Addr: cfg.HTTP.Address,
 		Handler: httpapi.NewWithDependencies(cfg, logger, httpapi.Dependencies{
 			AuthUsers: workflows.authUsers,
-			Systems:   repository, Scans: workflows.scans, Imports: workflows.imports, Management: workflows.management, Environments: workflows.environments,
+			Systems:   repository, Scans: workflows.scans, Imports: workflows.imports, Management: workflows.management, Environments: workflows.environments, CodeSources: workflows.codeSources,
 			Discoveries: workflows.discoveries, Scenarios: workflows.scenarios, Executions: workflows.executions, Steps: workflows.steps, Executor: executor,
 		}),
 		ReadHeaderTimeout: cfg.HTTP.ReadHeaderTimeout,
@@ -149,6 +152,7 @@ func selectWorkflowRepositories(ctx context.Context, cfg config.MySQL) (workflow
 			scans:     scanner.NewMemoryRepository(), imports: importer.NewMemoryRepository(),
 			management:   management.NewMemoryRepository(nil, nil, nil),
 			environments: environment.NewMemoryRepository(),
+			codeSources:  codesource.NewMemoryRepository(),
 			discoveries:  discovery.NewMemoryRepository(), executions: execution.NewMemoryRepository(),
 			scenarios: scenario.NewMemoryRepository(nil),
 		}, func() error { return nil }, nil

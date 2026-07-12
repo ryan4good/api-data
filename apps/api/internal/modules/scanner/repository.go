@@ -7,8 +7,11 @@ import (
 )
 
 var (
-	ErrScanNotFound      = errors.New("scan run not found")
-	ErrInvalidTransition = errors.New("invalid scan status transition")
+	ErrScanNotFound          = errors.New("scan run not found")
+	ErrInvalidTransition     = errors.New("invalid scan status transition")
+	ErrCodeSourceNotFound    = errors.New("code source not found")
+	ErrCodeSourceDisabled    = errors.New("code source is disabled")
+	ErrCodeSourceNotRunnable = errors.New("code source is not runnable")
 )
 
 type ScanRun struct {

@@ -18,6 +18,11 @@ class TencentDeploymentContractTest(unittest.TestCase):
         self.assertRegex(environment, r"(?m)^HTTP_ADDRESS=127\.0\.0\.1:18080$")
         self.assertNotRegex(environment, r"(?m)^HTTP_ADDRESS=(?:0\.0\.0\.0|\[?::\]?):18080$")
 
+    def test_scanner_workspace_allowlist_defaults_to_deny_all(self) -> None:
+        environment = (DEPLOY / "api.env.example").read_text(encoding="utf-8")
+        self.assertRegex(environment, r"(?m)^SCANNER_ALLOWED_ROOTS=$")
+        self.assertNotRegex(environment, r"(?m)^SCANNER_ALLOWED_ROOTS=(?:/|[A-Za-z]:[\\/])$")
+
     def test_nginx_protects_both_trial_locations_with_basic_auth(self) -> None:
         nginx = (DEPLOY / "nginx-bizdevops.conf").read_text(encoding="utf-8")
         blocks = re.findall(r"location\s+\^~\s+(/bizdevops/(?:api/)?)\s*\{(.*?)\n\}", nginx, re.DOTALL)

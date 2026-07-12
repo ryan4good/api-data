@@ -15,7 +15,10 @@ type Config struct {
 	MySQL         MySQL
 	Auth          Auth
 	ConnectorHTTP ConnectorHTTP
+	Scanner       Scanner
 }
+
+type Scanner struct{ AllowedRoots []string }
 
 type ConnectorHTTP struct {
 	AllowedHosts         []string
@@ -89,6 +92,7 @@ func Load() (Config, error) {
 			DefaultTimeout:       duration("CONNECTOR_HTTP_DEFAULT_TIMEOUT", 30*time.Second),
 			MaxTimeout:           duration("CONNECTOR_HTTP_MAX_TIMEOUT", 60*time.Second),
 		},
+		Scanner: Scanner{AllowedRoots: splitCSV(os.Getenv("SCANNER_ALLOWED_ROOTS"))},
 	}
 	if value, ok := os.LookupEnv("AUTH_JWT_TOKEN_TTL"); ok {
 		parsed, err := time.ParseDuration(value)

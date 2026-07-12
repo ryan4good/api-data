@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -12,6 +13,7 @@ import (
 
 	"bizdevops/apps/api/internal/config"
 	"bizdevops/apps/api/internal/modules/access"
+	"bizdevops/apps/api/internal/modules/codesource"
 	"bizdevops/apps/api/internal/modules/discovery"
 	"bizdevops/apps/api/internal/modules/environment"
 	"bizdevops/apps/api/internal/modules/execution"
@@ -66,6 +68,7 @@ func TestSystemWorkflowRoutesAreRegisteredWithInjectedRepositories(t *testing.T)
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		Dependencies{
 			Systems:         systems,
+			CodeSources:     codesource.NewMemoryRepository(),
 			Scans:           scanner.NewMemoryRepository(),
 			Imports:         importer.NewMemoryRepository(),
 			Management:      management.NewMemoryRepository(nil, nil, nil),
@@ -86,6 +89,7 @@ func TestSystemWorkflowRoutesAreRegisteredWithInjectedRepositories(t *testing.T)
 		"/api/v1/systems/" + systemID + "/scenario-runs",
 		"/api/v1/management/overview",
 		"/api/v1/systems/" + systemID + "/environments",
+		"/api/v1/systems/" + systemID + "/code-sources",
 	} {
 		recorder := httptest.NewRecorder()
 		request := httptest.NewRequest(http.MethodGet, path, nil)
@@ -101,6 +105,41 @@ func TestSystemWorkflowRoutesAreRegisteredWithInjectedRepositories(t *testing.T)
 	handler.ServeHTTP(asyncRecorder, asyncRequest)
 	if asyncRecorder.Code != http.StatusMethodNotAllowed {
 		t.Fatalf("async route status=%d body=%s", asyncRecorder.Code, asyncRecorder.Body.String())
+	}
+}
+
+func TestScannerUsesConfiguredAllowedRootFromComposition(t *testing.T) {
+	const systemID = "11111111-1111-4111-8111-111111111111"
+	const sourceID = "22222222-2222-4222-8222-222222222222"
+	const userID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+	root := t.TempDir()
+	systems := system.NewMemoryRepository([]system.BusinessSystem{{ID: systemID, Code: "orders", Name: "Orders", Status: system.StatusActive}}, []system.Member{{SystemID: systemID, UserID: userID, Role: access.RoleOwner, Status: system.MemberActive}})
+	sources := codesource.NewMemoryRepository()
+	if err := sources.Create(context.Background(), codesource.CodeSource{ID: sourceID, SystemID: systemID, Name: "orders", SourceType: codesource.TypeLocal, LocalPath: root, Status: codesource.StatusActive, CreatedBy: userID}); err != nil {
+		t.Fatal(err)
+	}
+	handler := NewWithDependencies(config.Config{ServiceName: "test-api", Environment: "test", Auth: config.Auth{Mode: "development"}, Scanner: config.Scanner{AllowedRoots: []string{root}}}, slog.New(slog.NewTextHandler(io.Discard, nil)), Dependencies{Systems: systems, CodeSources: sources, Scans: scanner.NewMemoryRepository()})
+	createRequest := httptest.NewRequest(http.MethodPost, "/api/v1/systems/"+systemID+"/scans", strings.NewReader(`{"codeSourceId":"`+sourceID+`"}`))
+	createRequest.Header.Set(access.DevelopmentUserHeader, userID)
+	created := httptest.NewRecorder()
+	handler.ServeHTTP(created, createRequest)
+	if created.Code != http.StatusCreated {
+		t.Fatalf("create=%d body=%s", created.Code, created.Body.String())
+	}
+	var envelope struct {
+		Data struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(created.Body.Bytes(), &envelope); err != nil || envelope.Data.ID == "" {
+		t.Fatalf("decode=%v body=%s", err, created.Body.String())
+	}
+	runRequest := httptest.NewRequest(http.MethodPost, "/api/v1/systems/"+systemID+"/scans/"+envelope.Data.ID+"/run", strings.NewReader(`{}`))
+	runRequest.Header.Set(access.DevelopmentUserHeader, userID)
+	ran := httptest.NewRecorder()
+	handler.ServeHTTP(ran, runRequest)
+	if ran.Code != http.StatusOK {
+		t.Fatalf("run=%d body=%s", ran.Code, ran.Body.String())
 	}
 }
 

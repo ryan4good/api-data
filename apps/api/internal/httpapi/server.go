@@ -10,6 +10,7 @@ import (
 	"bizdevops/apps/api/internal/httpresponse"
 	"bizdevops/apps/api/internal/modules/access"
 	"bizdevops/apps/api/internal/modules/catalog"
+	"bizdevops/apps/api/internal/modules/codesource"
 	"bizdevops/apps/api/internal/modules/connector"
 	"bizdevops/apps/api/internal/modules/discovery"
 	"bizdevops/apps/api/internal/modules/environment"
@@ -33,6 +34,7 @@ type Dependencies struct {
 	Executions      execution.Repository
 	AsyncExecutions execution.AsyncRepository
 	Environments    environment.Repository
+	CodeSources     codesource.Repository
 	Steps           execution.StepProvider
 	Executor        execution.StepExecutor
 }
@@ -59,6 +61,7 @@ func New(cfg config.Config, logger *slog.Logger) http.Handler {
 		Discoveries: discovery.NewMemoryRepository(), Executions: execution.NewMemoryRepository(),
 		Scenarios:    scenario.NewMemoryRepository(nil),
 		Environments: environment.NewMemoryRepository(),
+		CodeSources:  codesource.NewMemoryRepository(),
 	})
 }
 
@@ -79,6 +82,7 @@ func NewWithRepositories(
 		Discoveries: discovery.NewMemoryRepository(), Executions: execution.NewMemoryRepository(),
 		Scenarios:    scenario.NewMemoryRepository(nil),
 		Environments: environment.NewMemoryRepository(),
+		CodeSources:  codesource.NewMemoryRepository(),
 	})
 }
 
@@ -130,6 +134,9 @@ func NewWithDependencies(cfg config.Config, logger *slog.Logger, dependencies De
 	if dependencies.Executor == nil {
 		dependencies.Executor = execution.DisabledExecutor{}
 	}
+	if dependencies.CodeSources == nil {
+		dependencies.CodeSources = codesource.NewMemoryRepository()
+	}
 
 	system.Register(mux, dependencies.Systems)
 	access.Register(mux)
@@ -139,7 +146,7 @@ func NewWithDependencies(cfg config.Config, logger *slog.Logger, dependencies De
 		CookieName: cfg.Auth.CookieName, CookieSecure: cfg.Auth.CookieSecure, CookiePath: cfg.Auth.CookiePath,
 	})
 	scanner.Register(mux)
-	scanner.RegisterSystemRoutes(mux, scanner.NewService(dependencies.Scans, scanner.AnalyzerFunc(scanner.Analyze)), dependencies.Systems)
+	scanner.RegisterSystemRoutes(mux, scanner.NewService(dependencies.Scans, dependencies.CodeSources, scanner.AnalyzerFunc(scanner.Analyze), cfg.Scanner.AllowedRoots...), dependencies.Systems)
 	importer.RegisterSystemRoutes(mux, importer.NewService(dependencies.Imports, importer.ServiceOptions{}), dependencies.Systems)
 	management.Register(mux, dependencies.Management, logger)
 	discovery.RegisterSystemRoutes(mux, discovery.NewService(dependencies.Discoveries), dependencies.Systems)
@@ -154,6 +161,7 @@ func NewWithDependencies(cfg config.Config, logger *slog.Logger, dependencies De
 		execution.RegisterAsyncRoutes(mux, execution.NewQueueService(asyncRepository, dependencies.Steps, execution.QueueServiceOptions{}), dependencies.Systems)
 	}
 	environment.RegisterSystemRoutes(mux, dependencies.Environments, dependencies.Systems)
+	codesource.RegisterSystemRoutes(mux, dependencies.CodeSources, dependencies.Systems)
 	runrecord.RegisterSystemRoutes(mux, runrecord.NewQueryService(dependencies.Executions), dependencies.Systems)
 	catalog.Register(mux)
 	discovery.Register(mux)
@@ -169,7 +177,7 @@ func NewWithDependencies(cfg config.Config, logger *slog.Logger, dependencies De
 }
 
 func registeredModules() []string {
-	return []string{"system", "identity/access", "scanner", "catalog", "discovery", "scenario", "execution", "runrecord", "connector"}
+	return []string{"system", "identity/access", "code-source", "scanner", "catalog", "discovery", "scenario", "execution", "runrecord", "connector"}
 }
 
 func requestLogger(logger *slog.Logger, next http.Handler) http.Handler {
