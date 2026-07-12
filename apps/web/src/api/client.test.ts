@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ApiError, createApiClient } from './client'
+import { ApiError, createApiClient, resolveApiBaseUrl } from './client'
 
 describe('API client', () => {
+  it('resolves the API under a configured deployment base path', () => {
+    expect(resolveApiBaseUrl('/bizdevops/')).toBe('/bizdevops/api/v1')
+    expect(resolveApiBaseUrl('/')).toBe('/api/v1')
+  })
   it('sends JSON and unwraps the API envelope', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(
       JSON.stringify({ data: { id: 'sys-1', name: '订单中心' } }),

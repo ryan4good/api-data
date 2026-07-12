@@ -20,8 +20,13 @@ export interface ApiClientOptions {
   transport?: typeof fetch
 }
 
+export function resolveApiBaseUrl(basePath: string): string {
+  const normalized = `/${basePath}`.replace(/\/+/g, '/').replace(/\/+$/, '')
+  return `${normalized === '' ? '' : normalized}/api/v1`
+}
+
 export function createApiClient(options: ApiClientOptions = {}) {
-  const baseUrl = (options.baseUrl ?? '/api/v1').replace(/\/$/, '')
+  const baseUrl = (options.baseUrl ?? resolveApiBaseUrl(import.meta.env.BASE_URL)).replace(/\/$/, '')
   const transport = options.transport ?? fetch
 
   async function request<T>(path: string, init: RequestInit = {}): Promise<T> {

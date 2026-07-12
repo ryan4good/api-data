@@ -7,6 +7,7 @@ __pycache__/
 .env
 .env.*
 !.env.example
+/docs/tencent.txt
 
 # Runtime and generated artifacts
 ai-data-platform/logs/*.json

@@ -1,0 +1,23 @@
+[Unit]
+Description=BizDevOps Worker for system %i
+After=network.target mariadb.service
+Wants=mariadb.service
+
+[Service]
+Type=simple
+User=bizdevops
+Group=bizdevops
+WorkingDirectory=/opt/bizdevops
+EnvironmentFile=/etc/bizdevops/api.env
+Environment=WORKER_SYSTEM_ID=%i
+Environment=WORKER_ID=%H-%i
+ExecStart=/opt/bizdevops/bin/bizdevops-worker
+Restart=on-failure
+RestartSec=3s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+
+[Install]
+WantedBy=multi-user.target

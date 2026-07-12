@@ -1,0 +1,21 @@
+[Unit]
+Description=BizDevOps API
+After=network.target mariadb.service
+Wants=mariadb.service
+
+[Service]
+Type=simple
+User=bizdevops
+Group=bizdevops
+WorkingDirectory=/opt/bizdevops
+EnvironmentFile=/etc/bizdevops/api.env
+ExecStart=/opt/bizdevops/bin/bizdevops-api
+Restart=on-failure
+RestartSec=3s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+
+[Install]
+WantedBy=multi-user.target
